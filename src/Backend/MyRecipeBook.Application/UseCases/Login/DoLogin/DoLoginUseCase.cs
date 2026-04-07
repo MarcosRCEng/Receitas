@@ -6,6 +6,7 @@ using MyRecipeBook.Domain.Repositories.Token;
 using MyRecipeBook.Domain.Repositories.User;
 using MyRecipeBook.Domain.Security.Cryptography;
 using MyRecipeBook.Domain.Security.Tokens;
+using MyRecipeBook.Domain.ValueObjects;
 using MyRecipeBook.Exceptions.ExceptionsBase;
 
 namespace MyRecipeBook.Application.UseCases.Login.DoLogin;
@@ -60,7 +61,8 @@ public class DoLoginUseCase : IDoLoginUseCase
         var refreshToken = new Domain.Entities.RefreshToken
         {
             Value = _refreshTokenGenerator.Generate(),
-            UserId = user.Id
+            UserId = user.Id,
+            ExpiresOn = DateTime.UtcNow.AddDays(MyRecipeBookRuleConstants.REFRESH_TOKEN_EXPIRATION_DAYS)
         };
 
         await _tokenRepository.SaveNewRefreshToken(refreshToken);

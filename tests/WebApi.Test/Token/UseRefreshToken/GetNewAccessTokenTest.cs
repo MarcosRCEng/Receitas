@@ -12,11 +12,13 @@ public class GetNewAccessTokenTest : MyRecipeBookClassFixture
 {
     private const string METHOD = "token";
 
-    private readonly string _userRefreshToken;
+    private readonly string _email;
+    private readonly string _password;
 
     public GetNewAccessTokenTest(CustomWebApplicationFactory factory) : base(factory)
     {
-        _userRefreshToken = factory.GetRefreshToken();
+        _email = factory.GetEmail();
+        _password = factory.GetPassword();
     }
 
     [Fact]
@@ -24,7 +26,7 @@ public class GetNewAccessTokenTest : MyRecipeBookClassFixture
     {
         var request = new RequestNewTokenJson
         {
-            RefreshToken = _userRefreshToken
+            RefreshToken = await GetFreshRefreshToken()
         };
 
         var response = await DoPost($"{METHOD}/refresh-token", request);
@@ -37,6 +39,43 @@ public class GetNewAccessTokenTest : MyRecipeBookClassFixture
 
         responseData.RootElement.GetProperty("accessToken").GetString().Should().NotBeNullOrWhiteSpace();
         responseData.RootElement.GetProperty("refreshToken").GetString().Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task Error_Old_RefreshToken_Cannot_Be_Reused_After_Rotation()
+    {
+        var request = new RequestNewTokenJson
+        {
+            RefreshToken = await GetFreshRefreshToken()
+        };
+
+        var firstResponse = await DoPost($"{METHOD}/refresh-token", request);
+
+        firstResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var secondResponse = await DoPost($"{METHOD}/refresh-token", request);
+
+        secondResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    private async Task<string> GetFreshRefreshToken()
+    {
+        var loginResponse = await DoPost("login", new RequestLoginJson
+        {
+            Email = _email,
+            Password = _password
+        });
+
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        await using var responseBody = await loginResponse.Content.ReadAsStreamAsync();
+
+        var responseData = await JsonDocument.ParseAsync(responseBody);
+
+        return responseData.RootElement
+            .GetProperty("tokens")
+            .GetProperty("refreshToken")
+            .GetString()!;
     }
 
     [Theory]

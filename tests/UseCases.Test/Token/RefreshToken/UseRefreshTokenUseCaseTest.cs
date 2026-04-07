@@ -49,7 +49,7 @@ public class UseRefreshTokenUseCaseTest
     {
         (var user, _) = UserBuilder.Build();
         var refreshToken = RefreshTokenBuilder.Build(user);
-        refreshToken.CreatedOn = DateTime.UtcNow.AddDays(-MyRecipeBookRuleConstants.REFRESH_TOKEN_EXPIRATION_DAYS - 1);
+        refreshToken.ExpiresOn = DateTime.UtcNow.AddDays(-1);
 
         var useCase = CreateUseCase(refreshToken);
 
@@ -60,6 +60,24 @@ public class UseRefreshTokenUseCaseTest
 
         (await act.Should().ThrowAsync<RefreshTokenExpiredException>())
             .Where(e => e.Message.Equals(ResourceMessagesException.INVALID_SESSION));
+    }
+
+    [Fact]
+    public async Task Error_RefreshToken_Revoked()
+    {
+        (var user, _) = UserBuilder.Build();
+        var refreshToken = RefreshTokenBuilder.Build(user);
+        refreshToken.RevokedAt = DateTime.UtcNow;
+
+        var useCase = CreateUseCase(refreshToken);
+
+        var act = async () => await useCase.Execute(new RequestNewTokenJson
+        {
+            RefreshToken = refreshToken.Value
+        });
+
+        (await act.Should().ThrowAsync<RefreshTokenNotFoundException>())
+            .Where(e => e.Message.Equals(ResourceMessagesException.EXPIRED_SESSION));
     }
 
     private static UseRefreshTokenUseCase CreateUseCase(MyRecipeBook.Domain.Entities.RefreshToken? refreshToken = null)

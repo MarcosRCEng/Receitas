@@ -20,9 +20,13 @@ public class TokenRepository : ITokenRepository
 
     public async Task SaveNewRefreshToken(RefreshToken refreshToken)
     {
-        var tokens = _dbContext.RefreshTokens.Where(token => token.UserId == refreshToken.UserId);
+        var activeTokens = _dbContext
+            .RefreshTokens
+            .Where(token => token.UserId == refreshToken.UserId && token.RevokedAt == null);
 
-        _dbContext.RefreshTokens.RemoveRange(tokens);
+        var revokedAt = DateTime.UtcNow;
+
+        await activeTokens.ForEachAsync(token => token.RevokedAt = revokedAt);
 
         await _dbContext.RefreshTokens.AddAsync(refreshToken);
     }

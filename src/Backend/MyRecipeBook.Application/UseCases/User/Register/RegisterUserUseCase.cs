@@ -8,6 +8,7 @@ using MyRecipeBook.Domain.Repositories.Token;
 using MyRecipeBook.Domain.Repositories.User;
 using MyRecipeBook.Domain.Security.Cryptography;
 using MyRecipeBook.Domain.Security.Tokens;
+using MyRecipeBook.Domain.ValueObjects;
 using MyRecipeBook.Exceptions;
 using MyRecipeBook.Exceptions.ExceptionsBase;
 
@@ -74,7 +75,8 @@ public class RegisterUserUseCase : IRegisterUserUseCase
         await _tokenRepository.SaveNewRefreshToken(new RefreshToken
         {
             Value = refreshToken,
-            UserId = user.Id
+            UserId = user.Id,
+            ExpiresOn = DateTime.UtcNow.AddDays(MyRecipeBookRuleConstants.REFRESH_TOKEN_EXPIRATION_DAYS)
         });
 
         await _unitOfWork.Commit();

@@ -1,23 +1,20 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.IdentityModel.Tokens;
 using MyRecipeBook.Communication.Responses;
 using MyRecipeBook.Domain.Extensions;
 using MyRecipeBook.Domain.Repositories.User;
-using MyRecipeBook.Domain.Security.Tokens;
 using MyRecipeBook.Exceptions;
 using MyRecipeBook.Exceptions.ExceptionsBase;
+using System.Security.Claims;
 
 namespace MyRecipeBook.API.Filters;
 
 public class AuthenticatedUserFilter : IAsyncAuthorizationFilter
 {
-    private readonly IAccessTokenValidator _accessTokenValidator;
     private readonly IUserReadOnlyRepository _repository;
 
-    public AuthenticatedUserFilter(IAccessTokenValidator accessTokenValidator, IUserReadOnlyRepository repository)
+    public AuthenticatedUserFilter(IUserReadOnlyRepository repository)
     {
-        _accessTokenValidator = accessTokenValidator;
         _repository = repository;
     }
 
@@ -25,22 +22,13 @@ public class AuthenticatedUserFilter : IAsyncAuthorizationFilter
     {
         try
         {
-            var token = TokenOnRequest(context);
-
-            var userIdentifier = _accessTokenValidator.ValidateAndGetUserIdentifier(token);
+            var userIdentifier = UserIdentifier(context);
 
             var exist = await _repository.ExistActiveUserWithIdentifier(userIdentifier);
             if (exist.IsFalse())
             {
                 throw new UnauthorizedException(ResourceMessagesException.USER_WITHOUT_PERMISSION_ACCESS_RESOURCE);
             }
-        }
-        catch (SecurityTokenExpiredException)
-        {
-            context.Result = new UnauthorizedObjectResult(new ResponseErrorJson("TokenIsExpired")
-            {
-                TokenIsExpired = true,
-            });
         }
         catch (MyRecipeBookException myRecipeBookException)
         {
@@ -53,14 +41,16 @@ public class AuthenticatedUserFilter : IAsyncAuthorizationFilter
         }
     }
 
-    private static string TokenOnRequest(AuthorizationFilterContext context)
+    private static Guid UserIdentifier(AuthorizationFilterContext context)
     {
-        var authentication = context.HttpContext.Request.Headers.Authorization.ToString();
-        if (string.IsNullOrWhiteSpace(authentication))
+        var identity = context.HttpContext.User.Identity;
+        if (identity is null || identity.IsAuthenticated.IsFalse())
         {
             throw new UnauthorizedException(ResourceMessagesException.NO_TOKEN);
         }
 
-        return authentication["Bearer ".Length..].Trim();
+        var userIdentifier = context.HttpContext.User.Claims.First(c => c.Type == ClaimTypes.Sid).Value;
+
+        return Guid.Parse(userIdentifier);
     }
 }

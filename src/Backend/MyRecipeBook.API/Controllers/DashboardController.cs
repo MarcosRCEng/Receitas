@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using MyRecipeBook.API.Attributes;
 using MyRecipeBook.Application.UseCases.Dashboard;
 using MyRecipeBook.Communication.Responses;
@@ -6,6 +7,7 @@ using MyRecipeBook.Communication.Responses;
 namespace MyRecipeBook.API.Controllers;
 
 [AuthenticatedUser]
+[Authorize]
 public class DashboardController : MyRecipeBookBaseController
 {
     [HttpGet]

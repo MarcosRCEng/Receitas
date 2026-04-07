@@ -9,11 +9,15 @@ public class JwtTokenGenerator : JwtTokenHandler, IAccessTokenGenerator
 {
     private readonly uint _expirationTimeMinutes;
     private readonly string _signingKey;
+    private readonly string _issuer;
+    private readonly string _audience;
 
-    public JwtTokenGenerator(uint expirationTimeMinutes, string signingKey)
+    public JwtTokenGenerator(uint expirationTimeMinutes, string signingKey, string issuer, string audience)
     {
         _expirationTimeMinutes = expirationTimeMinutes;
         _signingKey = signingKey;
+        _issuer = issuer;
+        _audience = audience;
     }
 
     public string Generate(Guid userIdentifier)
@@ -27,6 +31,8 @@ public class JwtTokenGenerator : JwtTokenHandler, IAccessTokenGenerator
         {
             Subject = new ClaimsIdentity(claims),
             Expires = DateTime.UtcNow.AddMinutes(_expirationTimeMinutes),
+            Issuer = _issuer,
+            Audience = _audience,
             SigningCredentials = new SigningCredentials(SecurityKey(_signingKey), SecurityAlgorithms.HmacSha256Signature)
         };
 

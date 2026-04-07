@@ -1,5 +1,7 @@
 ﻿using MyRecipeBook.Domain.Security.Tokens;
 
+using System.Security.Claims;
+
 namespace MyRecipeBook.API.Token;
 
 public class HttpContextTokenValue : ITokenProvider
@@ -11,10 +13,15 @@ public class HttpContextTokenValue : ITokenProvider
         _contextAccessor = contextAccessor;
     }
 
-    public string Value()
+    public Guid UserIdentifier()
     {
-        var authentication = _contextAccessor.HttpContext!.Request.Headers.Authorization.ToString();
+        var userIdentifier = _contextAccessor
+            .HttpContext!
+            .User
+            .Claims
+            .First(c => c.Type == ClaimTypes.Sid)
+            .Value;
 
-        return authentication["Bearer ".Length..].Trim();
+        return Guid.Parse(userIdentifier);
     }
 }

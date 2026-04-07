@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MyRecipeBook.API.BackgroundServices;
 using MyRecipeBook.API.Converters;
@@ -13,6 +15,7 @@ using MyRecipeBook.Infrastructure;
 using MyRecipeBook.Infrastructure.DataAccess;
 using MyRecipeBook.Infrastructure.Extensions;
 using MyRecipeBook.Infrastructure.Migrations;
+using System.Text;
 
 const string AUTHENTICATION_TYPE = "Bearer";
 
@@ -58,6 +61,29 @@ builder.Services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter)))
 
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    var signingKey = builder.Configuration.GetValue<string>("Settings:Jwt:SigningKey");
+    var issuer = builder.Configuration.GetValue<string>("Settings:Jwt:Issuer");
+    var audience = builder.Configuration.GetValue<string>("Settings:Jwt:Audience");
+
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = issuer,
+        ValidAudience = audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey!)),
+        ClockSkew = TimeSpan.Zero
+    };
+});
 
 // Registro de Service Bus e Blob Storage (usado por BackgroundService e UseCases)
 // As chaves de configuração esperadas são:
@@ -153,6 +179,7 @@ app.UseMiddleware<CultureMiddleware>();
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
@@ -179,14 +206,12 @@ void AddGoogleAuthentication()
     var clientId = builder.Configuration.GetValue<string>("Settings:Google:ClientId")!;
     var clientSecret = builder.Configuration.GetValue<string>("Settings:Google:ClientSecret")!;
 
-    builder.Services.AddAuthentication(config =>
-    {
-        config.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    }).AddCookie()
+    builder.Services.AddAuthentication().AddCookie()
     .AddGoogle(googleOptions =>
     {
         googleOptions.ClientId = clientId;
         googleOptions.ClientSecret = clientSecret;
+        googleOptions.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     });
 }
 

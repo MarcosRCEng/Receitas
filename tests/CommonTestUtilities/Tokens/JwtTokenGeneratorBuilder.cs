@@ -5,5 +5,9 @@ namespace CommonTestUtilities.Tokens;
 
 public class JwtTokenGeneratorBuilder
 {
-    public static IAccessTokenGenerator Build() => new JwtTokenGenerator(expirationTimeMinutes: 5, signingKey: "tttttttttttttttttttttttttttttttt");
+    public static IAccessTokenGenerator Build() => new JwtTokenGenerator(
+        expirationTimeMinutes: 5,
+        signingKey: "tttttttttttttttttttttttttttttttt",
+        issuer: "MyRecipeBook",
+        audience: "MyRecipeBook");
 }

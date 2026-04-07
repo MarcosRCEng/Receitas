@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using MyRecipeBook.API.Attributes;
 using MyRecipeBook.API.Binders;
 using MyRecipeBook.Application.UseCases.Recipe.Delete;
@@ -14,6 +15,7 @@ using MyRecipeBook.Communication.Responses;
 namespace MyRecipeBook.API.Controllers;
 
 [AuthenticatedUser]
+[Authorize]
 public class RecipeController : MyRecipeBookBaseController
 {
     [HttpPost]

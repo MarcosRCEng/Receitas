@@ -8,16 +8,27 @@ namespace MyRecipeBook.Infrastructure.Security.Tokens.Access.Validator;
 public class JwtTokenValidator : JwtTokenHandler, IAccessTokenValidator
 {
     private readonly string _signingKey;
+    private readonly string _issuer;
+    private readonly string _audience;
 
-    public JwtTokenValidator(string signingKey) => _signingKey = signingKey;
+    public JwtTokenValidator(string signingKey, string issuer, string audience)
+    {
+        _signingKey = signingKey;
+        _issuer = issuer;
+        _audience = audience;
+    }
 
     public Guid ValidateAndGetUserIdentifier(string token)
     {
         var validationParameter = new TokenValidationParameters
         {
-            ValidateAudience = false,
-            ValidateIssuer = false,
+            ValidateAudience = true,
+            ValidateIssuer = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
             IssuerSigningKey = SecurityKey(_signingKey),
+            ValidIssuer = _issuer,
+            ValidAudience = _audience,
             ClockSkew = new TimeSpan(0)
         };
 

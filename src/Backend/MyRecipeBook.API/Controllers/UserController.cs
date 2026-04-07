@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using MyRecipeBook.API.Attributes;
 using MyRecipeBook.Application.UseCases.User.ChangePassword;
 using MyRecipeBook.Application.UseCases.User.Delete.Request;
@@ -25,6 +26,7 @@ public class UserController : MyRecipeBookBaseController
 
     [HttpGet]
     [ProducesResponseType(typeof(ResponseUserProfileJson), StatusCodes.Status200OK)]
+    [Authorize]
     [AuthenticatedUser]
     public async Task<IActionResult> GetUserProfile([FromServices] IGetUserProfileUseCase useCase)
     {
@@ -36,6 +38,7 @@ public class UserController : MyRecipeBookBaseController
     [HttpPut]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [Authorize]
     [AuthenticatedUser]
     public async Task<IActionResult> Update(
         [FromServices] IUpdateUserUseCase useCase,
@@ -49,6 +52,7 @@ public class UserController : MyRecipeBookBaseController
     [HttpPut("change-password")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [Authorize]
     [AuthenticatedUser]
     public async Task<IActionResult> ChangePassword(
         [FromServices] IChangePasswordUseCase useCase,
@@ -61,6 +65,7 @@ public class UserController : MyRecipeBookBaseController
 
     [HttpDelete]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [Authorize]
     [AuthenticatedUser]
     public async Task<IActionResult> Delete([FromServices] IRequestDeleteUserUseCase useCase)
     {

@@ -153,9 +153,11 @@ public static class DependencyInjectionExtension
     {
         var expirationTimeMinutes = configuration.GetValue<uint>("Settings:Jwt:ExpirationTimeMinutes");
         var signingKey = configuration.GetValue<string>("Settings:Jwt:SigningKey");
+        var issuer = configuration.GetValue<string>("Settings:Jwt:Issuer");
+        var audience = configuration.GetValue<string>("Settings:Jwt:Audience");
 
-        services.AddScoped<IAccessTokenGenerator>(option => new JwtTokenGenerator(expirationTimeMinutes, signingKey!));
-        services.AddScoped<IAccessTokenValidator>(option => new JwtTokenValidator(signingKey!));
+        services.AddScoped<IAccessTokenGenerator>(option => new JwtTokenGenerator(expirationTimeMinutes, signingKey!, issuer!, audience!));
+        services.AddScoped<IAccessTokenValidator>(option => new JwtTokenValidator(signingKey!, issuer!, audience!));
 
         services.AddScoped<IRefreshTokenGenerator, RefreshTokenGenerator>();
     }

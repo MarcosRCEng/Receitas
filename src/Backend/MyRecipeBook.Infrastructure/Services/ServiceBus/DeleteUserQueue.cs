@@ -1,5 +1,4 @@
 ﻿using Azure.Messaging.ServiceBus;
-using MyRecipeBook.Domain.Entities;
 using MyRecipeBook.Domain.Services.ServiceBus;
 
 namespace MyRecipeBook.Infrastructure.Services.ServiceBus;
@@ -12,8 +11,13 @@ public class DeleteUserQueue : IDeleteUserQueue
         _serviceBusSender = serviceBusSender;
     }
 
-    public async Task SendMessage(User user)
+    public async Task SendMessage(Guid userIdentifier, string? messageId = null)
     {
-        await _serviceBusSender.SendMessageAsync(new ServiceBusMessage(user.UserIdentifier.ToString()));
+        var message = new ServiceBusMessage(userIdentifier.ToString());
+
+        if (string.IsNullOrWhiteSpace(messageId).Equals(false))
+            message.MessageId = messageId;
+
+        await _serviceBusSender.SendMessageAsync(message);
     }
 }

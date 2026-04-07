@@ -150,7 +150,10 @@ if (builder.Configuration.IsUnitTestEnviroment().IsFalse())
 {
     // Registrar HostedService apenas quando o Service Bus estiver configurado.
     if (isServiceBusConfigured)
+    {
+        builder.Services.AddHostedService<OutboxMessagePublisherService>();
         builder.Services.AddHostedService<DeleteUserService>();
+    }
 
     AddGoogleAuthentication();
 }

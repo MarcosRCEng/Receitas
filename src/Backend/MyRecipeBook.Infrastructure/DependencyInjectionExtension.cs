@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MyRecipeBook.Domain.Enums;
 using MyRecipeBook.Domain.Extensions;
 using MyRecipeBook.Domain.Repositories;
+using MyRecipeBook.Domain.Repositories.Outbox;
 using MyRecipeBook.Domain.Repositories.Recipe;
 using MyRecipeBook.Domain.Repositories.Token;
 using MyRecipeBook.Domain.Repositories.User;
@@ -107,6 +108,7 @@ public static class DependencyInjectionExtension
         services.AddScoped<IRecipeReadOnlyRepository, RecipeRepository>();
         services.AddScoped<IRecipeUpdateOnlyRepository, RecipeRepository>();
         services.AddScoped<ITokenRepository, TokenRepository>();
+        services.AddScoped<IOutboxRepository, OutboxRepository>();
     }
 
 

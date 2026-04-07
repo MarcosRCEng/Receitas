@@ -3,5 +3,5 @@
 namespace MyRecipeBook.Domain.Services.ServiceBus;
 public interface IDeleteUserQueue
 {
-    Task SendMessage(User user);
+    Task SendMessage(Guid userIdentifier, string? messageId = null);
 }

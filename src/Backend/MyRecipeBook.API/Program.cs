@@ -1,6 +1,8 @@
-using Microsoft.AspNetCore.Authentication.Cookies;
+﻿using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MyRecipeBook.API.BackgroundServices;
@@ -11,15 +13,24 @@ using MyRecipeBook.API.Token;
 using MyRecipeBook.Application;
 using MyRecipeBook.Domain.Extensions;
 using MyRecipeBook.Domain.Security.Tokens;
+using MyRecipeBook.Domain.Settings;
 using MyRecipeBook.Infrastructure;
 using MyRecipeBook.Infrastructure.DataAccess;
-using MyRecipeBook.Infrastructure.Extensions;
 using MyRecipeBook.Infrastructure.Migrations;
 using System.Text;
 
 const string AUTHENTICATION_TYPE = "Bearer";
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
+builder.Services.Configure<AzureServiceBusSettings>(builder.Configuration.GetSection(AzureServiceBusSettings.SectionName));
+builder.Services.Configure<BlobStorageSettings>(builder.Configuration.GetSection(BlobStorageSettings.SectionName));
+builder.Services.Configure<DatabaseSettings>(builder.Configuration.GetSection(DatabaseSettings.SectionName));
+builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection(GoogleSettings.SectionName));
+builder.Services.Configure<IdCryptographySettings>(builder.Configuration.GetSection(IdCryptographySettings.SectionName));
+builder.Services.Configure<OpenAISettings>(builder.Configuration.GetSection(OpenAISettings.SectionName));
+builder.Services.Configure<TestEnvironmentSettings>(builder.Configuration);
 
 builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new StringConverter()));
 builder.Services.AddEndpointsApiExplorer();
@@ -59,86 +70,47 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter)));
 
-builder.Services.AddApplication(builder.Configuration);
-builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure();
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-.AddJwtBearer(options =>
+.AddJwtBearer()
+.AddCookie()
+.AddGoogle(googleOptions =>
 {
-    var signingKey = builder.Configuration.GetValue<string>("Settings:Jwt:SigningKey");
-    var issuer = builder.Configuration.GetValue<string>("Settings:Jwt:Issuer");
-    var audience = builder.Configuration.GetValue<string>("Settings:Jwt:Audience");
-
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = issuer,
-        ValidAudience = audience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey!)),
-        ClockSkew = TimeSpan.Zero
-    };
+    googleOptions.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 });
 
-// Registro de Service Bus e Blob Storage (usado por BackgroundService e UseCases)
-// As chaves de configuração esperadas são:
-// - Azure:ServiceBus:ConnectionString
-// - Azure:ServiceBus:QueueName
-// - Azure:Storage:ConnectionString
-var serviceBusConnection = builder.Configuration.GetValue<string>("Azure:ServiceBus:ConnectionString");
-var serviceBusQueueName = builder.Configuration.GetValue<string>("Azure:ServiceBus:QueueName");
-var isServiceBusConfigured = !string.IsNullOrEmpty(serviceBusConnection) && !string.IsNullOrEmpty(serviceBusQueueName);
-
-if (isServiceBusConfigured)
-{
-    builder.Services.AddSingleton(sp => new Azure.Messaging.ServiceBus.ServiceBusClient(serviceBusConnection));
-    builder.Services.AddSingleton(sp =>
-        sp.GetRequiredService<Azure.Messaging.ServiceBus.ServiceBusClient>()
-          .CreateProcessor(serviceBusQueueName, new Azure.Messaging.ServiceBus.ServiceBusProcessorOptions()));
-    builder.Services.AddSingleton(sp =>
-        sp.GetRequiredService<Azure.Messaging.ServiceBus.ServiceBusClient>()
-          .CreateSender(serviceBusQueueName));
-
-    // Wrapper que expõe o processor via DI (construtor de DeleteUserProcessor recebe ServiceBusProcessor)
-    builder.Services.AddSingleton<MyRecipeBook.Infrastructure.Services.ServiceBus.DeleteUserProcessor>();
-
-    // Queue para envio de mensagens (implementação real)
-    builder.Services.AddScoped<MyRecipeBook.Domain.Services.ServiceBus.IDeleteUserQueue, MyRecipeBook.Infrastructure.Services.ServiceBus.DeleteUserQueue>();
-}
-else
-{
-    // Quando Service Bus não estiver configurado, registrar uma implementação de fallback
-    // para evitar falha na resolução de dependências em ambientes locais.
-    builder.Services.AddScoped<MyRecipeBook.Domain.Services.ServiceBus.IDeleteUserQueue, MyRecipeBook.Infrastructure.Services.ServiceBus.FakeDeleteUserQueue>();
-}
-
-// Registro do serviço de Blob Storage (espera-se Azure implementation)
-var blobConnection = builder.Configuration.GetValue<string>("Azure:Storage:ConnectionString");
-var isBlobConfigured = !string.IsNullOrEmpty(blobConnection);
-
-if (builder.Configuration.IsUnitTestEnviroment())
-{
-    // Em testes, usar fakes explícitos
-    builder.Services.AddScoped<MyRecipeBook.Domain.Services.Storage.IBlobStorageService, MyRecipeBook.Infrastructure.Services.Storage.FakeBlobStorageService>();
-    builder.Services.AddScoped<MyRecipeBook.Domain.Services.ServiceBus.IDeleteUserQueue, MyRecipeBook.Infrastructure.Services.ServiceBus.FakeDeleteUserQueue>();
-}
-else
-{
-    if (isBlobConfigured)
+builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<IOptions<JwtSettings>>((options, jwtSettings) =>
     {
-        builder.Services.AddScoped<MyRecipeBook.Domain.Services.Storage.IBlobStorageService, MyRecipeBook.Infrastructure.Services.Storage.AzureBlobStorageService>();
-    }
-    else
+        var settings = jwtSettings.Value;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = settings.Issuer,
+            ValidAudience = settings.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.SigningKey)),
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddOptions<GoogleOptions>(GoogleDefaults.AuthenticationScheme)
+    .Configure<IOptions<GoogleSettings>>((options, googleSettings) =>
     {
-        // Fallback para ambientes locais sem Azure configurado
-        builder.Services.AddScoped<MyRecipeBook.Domain.Services.Storage.IBlobStorageService, MyRecipeBook.Infrastructure.Services.Storage.FakeBlobStorageService>();
-    }
-}
+        var settings = googleSettings.Value;
+
+        options.ClientId = settings.ClientId;
+        options.ClientSecret = settings.ClientSecret;
+    });
+
 
 builder.Services.AddScoped<ITokenProvider, HttpContextTokenValue>();
 
@@ -146,21 +118,13 @@ builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
 builder.Services.AddHttpContextAccessor();
 
-if (builder.Configuration.IsUnitTestEnviroment().IsFalse())
-{
-    // Registrar HostedService apenas quando o Service Bus estiver configurado.
-    if (isServiceBusConfigured)
-    {
-        builder.Services.AddHostedService<OutboxMessagePublisherService>();
-        builder.Services.AddHostedService<DeleteUserService>();
-    }
-
-    AddGoogleAuthentication();
-}
+builder.Services.AddHostedService<OutboxMessagePublisherService>();
+builder.Services.AddHostedService<DeleteUserService>();
 
 builder.Services.AddHealthChecks().AddDbContextCheck<MyRecipeBookDbContext>();
 
 var app = builder.Build();
+var testEnvironmentSettings = app.Services.GetRequiredService<IOptions<TestEnvironmentSettings>>().Value;
 
 app.MapHealthChecks("/Health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
@@ -180,7 +144,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseMiddleware<CultureMiddleware>();
 
-app.UseHttpsRedirection();
+if (testEnvironmentSettings.InMemoryTest.Equals(false))
+    app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -193,29 +158,16 @@ await app.RunAsync();
 
 void MigrateDatabase()
 {
-    if (builder.Configuration.IsUnitTestEnviroment())
+    if (testEnvironmentSettings.InMemoryTest)
         return;
 
-    var databaseType = builder.Configuration.DatabaseType();
-    var connectionString = builder.Configuration.ConnetionString();
+    var databaseSettings = app.Services.GetRequiredService<IOptions<DatabaseSettings>>().Value;
+    var databaseType = databaseSettings.GetDatabaseType();
+    var connectionString = databaseSettings.GetConnectionString();
 
     var serviceScope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope();
 
     DatabaseMigration.Migrate(databaseType, connectionString, serviceScope.ServiceProvider);
-}
-
-void AddGoogleAuthentication()
-{
-    var clientId = builder.Configuration.GetValue<string>("Settings:Google:ClientId")!;
-    var clientSecret = builder.Configuration.GetValue<string>("Settings:Google:ClientSecret")!;
-
-    builder.Services.AddAuthentication().AddCookie()
-    .AddGoogle(googleOptions =>
-    {
-        googleOptions.ClientId = clientId;
-        googleOptions.ClientSecret = clientSecret;
-        googleOptions.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    });
 }
 
 public partial class Program

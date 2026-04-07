@@ -1,5 +1,7 @@
 ﻿using Azure.Messaging.ServiceBus;
 using MyRecipeBook.Application.UseCases.User.Delete.Delete;
+using Microsoft.Extensions.Options;
+using MyRecipeBook.Domain.Settings;
 using MyRecipeBook.Infrastructure.Services.ServiceBus;
 
 namespace MyRecipeBook.API.BackgroundServices;
@@ -7,21 +9,25 @@ namespace MyRecipeBook.API.BackgroundServices;
 public class DeleteUserService : BackgroundService
 {
     private readonly IServiceProvider _services;
-    private readonly ServiceBusProcessor _processor;
+    private readonly AzureServiceBusSettings _serviceBusSettings;
 
-    public DeleteUserService(IServiceProvider services, DeleteUserProcessor processor)
+    public DeleteUserService(IServiceProvider services, IOptions<AzureServiceBusSettings> serviceBusSettings)
     {
-        _processor = processor.GetProcessor();
         _services = services;
+        _serviceBusSettings = serviceBusSettings.Value;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _processor.ProcessMessageAsync += ProcessMessageAsync;
+        if (_serviceBusSettings.IsConfigured().Equals(false))
+            return;
 
-        _processor.ProcessErrorAsync += ExceptionReceivedHandler;
+        var processor = _services.GetRequiredService<DeleteUserProcessor>().GetProcessor();
 
-        await _processor.StartProcessingAsync(stoppingToken);
+        processor.ProcessMessageAsync += ProcessMessageAsync;
+        processor.ProcessErrorAsync += ExceptionReceivedHandler;
+
+        await processor.StartProcessingAsync(stoppingToken);
     }
 
     private async Task ProcessMessageAsync(ProcessMessageEventArgs eventArgs)

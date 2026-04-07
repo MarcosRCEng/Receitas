@@ -1,7 +1,9 @@
+using Microsoft.Extensions.Options;
 using MyRecipeBook.Domain.Events;
 using MyRecipeBook.Domain.Repositories;
 using MyRecipeBook.Domain.Repositories.Outbox;
 using MyRecipeBook.Domain.Services.ServiceBus;
+using MyRecipeBook.Domain.Settings;
 using MyRecipeBook.Domain.ValueObjects;
 using System.Globalization;
 using System.Text.Json;
@@ -14,14 +16,24 @@ public class OutboxMessagePublisherService : BackgroundService
     private const int MAX_MESSAGES_PER_RUN = 10;
 
     private readonly IServiceProvider _services;
+    private readonly AzureServiceBusSettings _serviceBusSettings;
+    private readonly TestEnvironmentSettings _testEnvironmentSettings;
 
-    public OutboxMessagePublisherService(IServiceProvider services)
+    public OutboxMessagePublisherService(
+        IServiceProvider services,
+        IOptions<AzureServiceBusSettings> serviceBusSettings,
+        IOptions<TestEnvironmentSettings> testEnvironmentSettings)
     {
         _services = services;
+        _serviceBusSettings = serviceBusSettings.Value;
+        _testEnvironmentSettings = testEnvironmentSettings.Value;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (_testEnvironmentSettings.InMemoryTest || _serviceBusSettings.IsConfigured().Equals(false))
+            return;
+
         while (stoppingToken.IsCancellationRequested.Equals(false))
         {
             await PublishPendingMessages();

@@ -1,5 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using MyRecipeBook.Application.Services.AutoMapper;
 using MyRecipeBook.Application.UseCases.Dashboard;
 using MyRecipeBook.Application.UseCases.Login.DoLogin;
@@ -18,16 +18,17 @@ using MyRecipeBook.Application.UseCases.User.Delete.Request;
 using MyRecipeBook.Application.UseCases.User.Profile;
 using MyRecipeBook.Application.UseCases.User.Register;
 using MyRecipeBook.Application.UseCases.User.Update;
+using MyRecipeBook.Domain.Settings;
 using Sqids;
 
 namespace MyRecipeBook.Application;
 
 public static class DependencyInjectionExtension
 {
-    public static void AddApplication(this IServiceCollection services, IConfiguration configuration)
+    public static void AddApplication(this IServiceCollection services)
     {
         AddAutoMapper(services);
-        AddIdEncoder(services, configuration);
+        AddIdEncoder(services);
         AddUseCases(services);
     }
 
@@ -41,15 +42,18 @@ public static class DependencyInjectionExtension
         }).CreateMapper());
     }
 
-    private static void AddIdEncoder(IServiceCollection services, IConfiguration configuration)
+    private static void AddIdEncoder(IServiceCollection services)
     {
-        var sqids = new SqidsEncoder<long>(new()
+        services.AddSingleton(option =>
         {
-            MinLength = 3,
-            Alphabet = configuration.GetValue<string>("Settings:IdCryptographyAlphabet")!
-        });
+            var settings = option.GetRequiredService<IOptions<IdCryptographySettings>>().Value;
 
-        services.AddSingleton(sqids);
+            return new SqidsEncoder<long>(new()
+            {
+                MinLength = 3,
+                Alphabet = settings.IdCryptographyAlphabet
+            });
+        });
     }
 
     private static void AddUseCases(IServiceCollection services)

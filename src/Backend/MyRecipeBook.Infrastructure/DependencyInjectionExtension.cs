@@ -2,10 +2,9 @@
 using Azure.Storage.Blobs;
 using FluentMigrator.Runner;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using MyRecipeBook.Domain.Enums;
-using MyRecipeBook.Domain.Extensions;
 using MyRecipeBook.Domain.Repositories;
 using MyRecipeBook.Domain.Repositories.Outbox;
 using MyRecipeBook.Domain.Repositories.Recipe;
@@ -17,10 +16,10 @@ using MyRecipeBook.Domain.Services.LoggedUser;
 using MyRecipeBook.Domain.Services.OpenAI;
 using MyRecipeBook.Domain.Services.ServiceBus;
 using MyRecipeBook.Domain.Services.Storage;
+using MyRecipeBook.Domain.Settings;
 using MyRecipeBook.Domain.ValueObjects;
 using MyRecipeBook.Infrastructure.DataAccess;
 using MyRecipeBook.Infrastructure.DataAccess.Repositories;
-using MyRecipeBook.Infrastructure.Extensions;
 using MyRecipeBook.Infrastructure.Security.Cryptography;
 using MyRecipeBook.Infrastructure.Security.Tokens.Access.Generator;
 using MyRecipeBook.Infrastructure.Security.Tokens.Access.Validator;
@@ -36,62 +35,44 @@ namespace MyRecipeBook.Infrastructure;
 
 public static class DependencyInjectionExtension
 {
-    public static void AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static void AddInfrastructure(this IServiceCollection services)
     {
         AddPasswordEncrpter(services);
         AddRepositories(services);
         AddLoggedUser(services);
-        AddTokens(services, configuration);
-        AddOpenAI(services, configuration);
-        AddAzureStorage(services, configuration);
-        AddQueue(services, configuration);
+        AddTokens(services);
+        AddOpenAI(services);
+        AddAzureStorage(services);
+        AddQueue(services);
 
-        if (configuration.IsUnitTestEnviroment())
+        if (IsUnitTestEnvironment(services))
             return;
 
-        var databaseType = configuration.DatabaseType();
-
-        if (databaseType == DatabaseType.PostgreSql)
-        {
-            AddDbContext_PgSql(services, configuration);
-            AddFluentMigrator_PGSql(services, configuration);
-        }
-        else if (databaseType == DatabaseType.MySql)
-        {
-            AddDbContext_MySqlServer(services, configuration);
-            AddFluentMigrator_MySql(services, configuration);
-        }
-        else
-        {
-            AddDbContext_SqlServer(services, configuration);
-            AddFluentMigrator_SqlServer(services, configuration);
-        }
+        AddDbContext(services);
+        AddFluentMigrator(services);
     }
 
-    private static void AddDbContext_PgSql(IServiceCollection services, IConfiguration configuration)
+    private static void AddDbContext(IServiceCollection services)
     {
-        var connectionString = configuration.ConnetionString();
-        
-        services.AddDbContext<MyRecipeBookDbContext>(options => options.UseNpgsql(connectionString));
-    }
-
-    private static void AddDbContext_MySqlServer(IServiceCollection services, IConfiguration configuration)
-    {
-        var connectionString = configuration.ConnetionString();
-        var serverVersion = new MySqlServerVersion(new Version(8, 0, 35));
-
-        services.AddDbContext<MyRecipeBookDbContext>(dbContextOptions =>
+        services.AddDbContext<MyRecipeBookDbContext>((serviceProvider, dbContextOptions) =>
         {
-            dbContextOptions.UseMySql(connectionString, serverVersion);
-        });
-    }
+            var settings = serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value;
+            var connectionString = settings.GetConnectionString();
+            var databaseType = settings.GetDatabaseType();
 
-    private static void AddDbContext_SqlServer(IServiceCollection services, IConfiguration configuration)
-    {
-        var connectionString = configuration.ConnetionString();
+            if (databaseType == DatabaseType.PostgreSql)
+            {
+                dbContextOptions.UseNpgsql(connectionString);
+                return;
+            }
 
-        services.AddDbContext<MyRecipeBookDbContext>(dbContextOptions =>
-        {
+            if (databaseType == DatabaseType.MySql)
+            {
+                var serverVersion = new MySqlServerVersion(new Version(8, 0, 35));
+                dbContextOptions.UseMySql(connectionString, serverVersion);
+                return;
+            }
+
             dbContextOptions.UseSqlServer(connectionString);
         });
     }
@@ -112,54 +93,84 @@ public static class DependencyInjectionExtension
     }
 
 
-    private static void AddFluentMigrator_PGSql(IServiceCollection services, IConfiguration configuration)
+    private static void AddFluentMigrator(IServiceCollection services)
     {
-        var connectionString = configuration.ConnetionString();
+        var databaseSettings = GetDatabaseSettings(services);
+        var databaseType = databaseSettings.GetDatabaseType();
 
+        if (databaseType == DatabaseType.MySql)
+        {
+            AddFluentMigrator_MySql(services);
+            return;
+        }
+
+        if (databaseType == DatabaseType.SqlServer)
+        {
+            AddFluentMigrator_SqlServer(services);
+            return;
+        }
+
+        AddFluentMigrator_PGSql(services);
+    }
+
+    private static void AddFluentMigrator_PGSql(IServiceCollection services)
+    {
         services.AddFluentMigratorCore().ConfigureRunner(options =>
         {
             options
             .AddPostgres()
-            .WithGlobalConnectionString(connectionString)
+            .WithGlobalConnectionString(serviceProvider =>
+                serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value.GetConnectionString())
             .ScanIn(Assembly.Load("MyRecipeBook.Infrastructure")).For.All();
         });
     }
 
-    private static void AddFluentMigrator_MySql(IServiceCollection services, IConfiguration configuration)
+    private static void AddFluentMigrator_MySql(IServiceCollection services)
     {
-        var connectionString = configuration.ConnetionString();
-
         services.AddFluentMigratorCore().ConfigureRunner(options =>
         {
             options
             .AddMySql5()
-            .WithGlobalConnectionString(connectionString)
+            .WithGlobalConnectionString(serviceProvider =>
+                serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value.GetConnectionString())
             .ScanIn(Assembly.Load("MyRecipeBook.Infrastructure")).For.All();
         });
     }
 
-    private static void AddFluentMigrator_SqlServer(IServiceCollection services, IConfiguration configuration)
+    private static void AddFluentMigrator_SqlServer(IServiceCollection services)
     {
-        var connectionString = configuration.ConnetionString();
-
         services.AddFluentMigratorCore().ConfigureRunner(options =>
         {
             options
             .AddSqlServer()
-            .WithGlobalConnectionString(connectionString)
+            .WithGlobalConnectionString(serviceProvider =>
+                serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value.GetConnectionString())
             .ScanIn(Assembly.Load("MyRecipeBook.Infrastructure")).For.All();
         });
     }
 
-    private static void AddTokens(IServiceCollection services, IConfiguration configuration)
+    private static void AddTokens(IServiceCollection services)
     {
-        var expirationTimeMinutes = configuration.GetValue<uint>("Settings:Jwt:ExpirationTimeMinutes");
-        var signingKey = configuration.GetValue<string>("Settings:Jwt:SigningKey");
-        var issuer = configuration.GetValue<string>("Settings:Jwt:Issuer");
-        var audience = configuration.GetValue<string>("Settings:Jwt:Audience");
+        services.AddScoped<IAccessTokenGenerator>(option =>
+        {
+            var settings = option.GetRequiredService<IOptions<JwtSettings>>().Value;
 
-        services.AddScoped<IAccessTokenGenerator>(option => new JwtTokenGenerator(expirationTimeMinutes, signingKey!, issuer!, audience!));
-        services.AddScoped<IAccessTokenValidator>(option => new JwtTokenValidator(signingKey!, issuer!, audience!));
+            return new JwtTokenGenerator(
+                settings.ExpirationTimeMinutes,
+                settings.SigningKey,
+                settings.Issuer,
+                settings.Audience);
+        });
+
+        services.AddScoped<IAccessTokenValidator>(option =>
+        {
+            var settings = option.GetRequiredService<IOptions<JwtSettings>>().Value;
+
+            return new JwtTokenValidator(
+                settings.SigningKey,
+                settings.Issuer,
+                settings.Audience);
+        });
 
         services.AddScoped<IRefreshTokenGenerator, RefreshTokenGenerator>();
     }
@@ -171,46 +182,78 @@ public static class DependencyInjectionExtension
         services.AddScoped<IPasswordEncripter, BCryptNet>();
     }
 
-    private static void AddOpenAI(IServiceCollection services, IConfiguration configuration)
+    private static void AddOpenAI(IServiceCollection services)
     {
         services.AddScoped<IGenerateRecipeAI, ChatGptService>();
 
-        var apiKey = configuration.GetValue<string>("Settings:OpenAI:ApiKey");
+        services.AddScoped(c =>
+        {
+            var settings = c.GetRequiredService<IOptions<OpenAISettings>>().Value;
 
-        services.AddScoped(c => new ChatClient(MyRecipeBookRuleConstants.CHAT_MODEL, apiKey));
+            return new ChatClient(MyRecipeBookRuleConstants.CHAT_MODEL, settings.ApiKey);
+        });
     }
 
-    private static void AddAzureStorage(IServiceCollection services, IConfiguration configuration)
+    private static void AddAzureStorage(IServiceCollection services)
     {
-        var connectionString = configuration.GetValue<string>("Settings:BlobStorage:Azure");
-
-        if(connectionString.NotEmpty())
+        services.AddScoped<IBlobStorageService>(c =>
         {
-            services.AddScoped<IBlobStorageService>(c => new AzureStorageService(new BlobServiceClient(connectionString)));
-        }
+            var settings = c.GetRequiredService<IOptions<BlobStorageSettings>>().Value;
+
+            if (settings.IsConfigured())
+                return new AzureStorageService(new BlobServiceClient(settings.Azure));
+
+            return new FakeBlobStorageService();
+        });
     }
 
-    private static void AddQueue(IServiceCollection services, IConfiguration configuration)
+    private static void AddQueue(IServiceCollection services)
     {
-        var connectionString = configuration.GetValue<string>("Settings:ServiceBus:DeleteUserAccount")!;
-
-        if (string.IsNullOrWhiteSpace(connectionString))
-            return;
-
-        var client = new ServiceBusClient(connectionString, new ServiceBusClientOptions
+        services.AddSingleton(c =>
         {
-            TransportType = ServiceBusTransportType.AmqpWebSockets
+            var settings = c.GetRequiredService<IOptions<AzureServiceBusSettings>>().Value;
+
+            return new ServiceBusClient(settings.DeleteUserAccount, new ServiceBusClientOptions
+            {
+                TransportType = ServiceBusTransportType.AmqpWebSockets
+            });
         });
 
-        var deleteQueue = new DeleteUserQueue(client.CreateSender("user"));
-
-        var deleteUserProcessor = new DeleteUserProcessor(client.CreateProcessor("user", new ServiceBusProcessorOptions
+        services.AddSingleton(c =>
         {
-            MaxConcurrentCalls = 1
-        }));
+            var settings = c.GetRequiredService<IOptions<AzureServiceBusSettings>>().Value;
+            var client = c.GetRequiredService<ServiceBusClient>();
 
-        services.AddSingleton(deleteUserProcessor);
+            return new DeleteUserProcessor(client.CreateProcessor(settings.QueueName, new ServiceBusProcessorOptions
+            {
+                MaxConcurrentCalls = 1
+            }));
+        });
 
-        services.AddScoped<IDeleteUserQueue>(options => deleteQueue);
+        services.AddScoped<IDeleteUserQueue>(c =>
+        {
+            var settings = c.GetRequiredService<IOptions<AzureServiceBusSettings>>().Value;
+
+            if (settings.IsConfigured().Equals(false))
+                return new FakeDeleteUserQueue();
+
+            var client = c.GetRequiredService<ServiceBusClient>();
+
+            return new DeleteUserQueue(client.CreateSender(settings.QueueName));
+        });
+    }
+
+    private static bool IsUnitTestEnvironment(IServiceCollection services)
+    {
+        using var serviceProvider = services.BuildServiceProvider();
+
+        return serviceProvider.GetRequiredService<IOptions<TestEnvironmentSettings>>().Value.InMemoryTest;
+    }
+
+    private static DatabaseSettings GetDatabaseSettings(IServiceCollection services)
+    {
+        using var serviceProvider = services.BuildServiceProvider();
+
+        return serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value;
     }
 }

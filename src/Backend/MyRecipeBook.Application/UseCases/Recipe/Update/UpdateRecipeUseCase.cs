@@ -38,17 +38,18 @@ public class UpdateRecipeUseCase : IUpdateRecipeUseCase
         if (recipe is null)
             throw new NotFoundException(ResourceMessagesException.RECIPE_NOT_FOUND);
 
-        recipe.Ingredients.Clear();
-        recipe.Instructions.Clear();
-        recipe.DishTypes.Clear();
-
-        _mapper.Map(request, recipe);
+        recipe.UpdateDetails(
+            request.Title,
+            request.CookingTime is null ? null : (Domain.Enums.CookingTime)(int)request.CookingTime.Value,
+            request.Difficulty is null ? null : (Domain.Enums.Difficulty)(int)request.Difficulty.Value);
+        recipe.ReplaceIngredients(request.Ingredients);
+        recipe.ReplaceDishTypes(request.DishTypes.Select(dishType => (Domain.Enums.DishType)(int)dishType));
 
         var instructions = request.Instructions.OrderBy(i => i.Step).ToList();
         for (var index = 0; index < instructions.Count; index++)
             instructions[index].Step = index + 1;
 
-        recipe.Instructions = _mapper.Map<IList<Domain.Entities.Instruction>>(instructions);
+        recipe.ReplaceInstructions(_mapper.Map<IList<Domain.Entities.Instruction>>(instructions));
 
         _repository.Update(recipe);
 

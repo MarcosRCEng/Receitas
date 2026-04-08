@@ -20,13 +20,15 @@ public class AutoMapping : Profile
 
     private void RequestToDomain()
     {
-        CreateMap<RequestRegisterUserJson, Domain.Entities.User>()
-            .ForMember(dest => dest.Password, opt => opt.Ignore());
-
         CreateMap<RequestRecipeJson, Domain.Entities.Recipe>()
+            .ForMember(dest => dest.Title, opt => opt.Ignore())
+            .ForMember(dest => dest.CookingTime, opt => opt.Ignore())
+            .ForMember(dest => dest.Difficulty, opt => opt.Ignore())
             .ForMember(dest => dest.Instructions, opt => opt.Ignore())
-            .ForMember(dest => dest.Ingredients, opt => opt.MapFrom(source => source.Ingredients.Distinct()))
-            .ForMember(dest => dest.DishTypes, opt => opt.MapFrom(source => source.DishTypes.Distinct()));
+            .ForMember(dest => dest.Ingredients, opt => opt.Ignore())
+            .ForMember(dest => dest.DishTypes, opt => opt.Ignore())
+            .ForMember(dest => dest.ImageIdentifier, opt => opt.Ignore())
+            .ForMember(dest => dest.UserId, opt => opt.Ignore());
 
         CreateMap<string, Domain.Entities.Ingredient>()
             .ForMember(dest => dest.Item, opt => opt.MapFrom(source => source));

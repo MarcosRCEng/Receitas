@@ -33,8 +33,15 @@ public class AddUpdateImageCoverUseCaseTest
     public async Task Success_Recipe_Did_Not_Have_Image(IFormFile file)
     {
         (var user, _) = UserBuilder.Build();
-        var recipe = RecipeBuilder.Build(user);
-        recipe.ImageIdentifier = null;
+        var recipe = MyRecipeBook.Domain.Entities.Recipe.Create(
+            user.Id,
+            "Recipe",
+            MyRecipeBook.Domain.Enums.CookingTime.Less_10_Minutes,
+            MyRecipeBook.Domain.Enums.Difficulty.Low,
+            ["Salt"],
+            [new MyRecipeBook.Domain.Entities.Instruction { Step = 1, Text = "Mix" }],
+            [MyRecipeBook.Domain.Enums.DishType.Breakfast]);
+        recipe.Id = 1;
 
         var useCase = CreateUseCase(user, recipe);
 

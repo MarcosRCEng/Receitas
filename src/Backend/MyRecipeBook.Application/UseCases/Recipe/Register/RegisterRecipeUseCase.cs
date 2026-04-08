@@ -39,14 +39,18 @@ public class RegisterRecipeUseCase : IRegisterRecipeUseCase
 
         var loggedUser = await _loggedUser.User();
 
-        var recipe = _mapper.Map<Domain.Entities.Recipe>(request);
-        recipe.UserId = loggedUser.Id;
-
         var instructions = request.Instructions.OrderBy(i => i.Step).ToList();
         for (var index = 0; index < instructions.Count; index++)
             instructions[index].Step = index + 1;
 
-        recipe.Instructions = _mapper.Map<IList<Domain.Entities.Instruction>>(instructions);
+        var recipe = Domain.Entities.Recipe.Create(
+            loggedUser.Id,
+            request.Title,
+            request.CookingTime is null ? null : (Domain.Enums.CookingTime)(int)request.CookingTime.Value,
+            request.Difficulty is null ? null : (Domain.Enums.Difficulty)(int)request.Difficulty.Value,
+            request.Ingredients,
+            _mapper.Map<IList<Domain.Entities.Instruction>>(instructions),
+            request.DishTypes.Select(dishType => (Domain.Enums.DishType)(int)dishType));
 
         if(request.Image is not null)
         {
@@ -59,9 +63,10 @@ public class RegisterRecipeUseCase : IRegisterRecipeUseCase
                 throw new ErrorOnValidationException([ResourceMessagesException.ONLY_IMAGES_ACCEPTED]);
             }
 
-            recipe.ImageIdentifier = $"{Guid.NewGuid()}{extension}";
+            recipe.SetImageIdentifier($"{Guid.NewGuid()}{extension}");
+            var imageIdentifier = recipe.ImageIdentifier!;
 
-            await _blobStorageService.Upload(loggedUser, fileStream, recipe.ImageIdentifier);
+            await _blobStorageService.Upload(loggedUser, fileStream, imageIdentifier);
         }
 
         await _repository.Add(recipe);

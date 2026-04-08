@@ -48,11 +48,15 @@ public class AddUpdateImageCoverUseCase : IAddUpdateImageCoverUseCase
 
         if (string.IsNullOrEmpty(recipe.ImageIdentifier))
         {
-            recipe.ImageIdentifier = $"{Guid.NewGuid()}{extension}";
+            recipe.SetImageIdentifier($"{Guid.NewGuid()}{extension}");
+            var imageIdentifier = recipe.ImageIdentifier!;
 
             _repository.Update(recipe);
 
             await _unitOfWork.Commit();
+
+            await _blobStorageService.Upload(loggedUser, fileStream, imageIdentifier);
+            return;
         }
 
         await _blobStorageService.Upload(loggedUser, fileStream, recipe.ImageIdentifier);

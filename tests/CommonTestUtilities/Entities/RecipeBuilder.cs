@@ -27,28 +27,25 @@ public class RecipeBuilder
 
     public static Recipe Build(User user)
     {
-        return new Faker<Recipe>()
-            .RuleFor(r => r.Id, () => 1)
-            .RuleFor(r => r.Title, (f) => f.Lorem.Word())
-            .RuleFor(r => r.CookingTime, (f) => f.PickRandom<CookingTime>())
-            .RuleFor(r => r.Difficulty, (f) => f.PickRandom<Difficulty>())
-            .RuleFor(r => r.ImageIdentifier, _ => $"{Guid.NewGuid()}.png")
-            .RuleFor(r => r.Ingredients, (f) => f.Make(1, () => new Ingredient
-            {
-                Id = 1,
-                Item = f.Commerce.ProductName()
-            }))
-            .RuleFor(r => r.Instructions, (f) => f.Make(1, () => new Instruction
+        var faker = new Faker();
+
+        var recipe = Recipe.Create(
+            user.Id,
+            faker.Lorem.Word(),
+            faker.PickRandom<CookingTime>(),
+            faker.PickRandom<Difficulty>(),
+            [faker.Commerce.ProductName()],
+            [new Instruction
             {
                 Id = 1,
                 Step = 1,
-                Text = f.Lorem.Paragraph()
-            }))
-            .RuleFor(u => u.DishTypes, (f) => f.Make(1, () => new MyRecipeBook.Domain.Entities.DishType
-            {
-                Id = 1,
-                Type = f.PickRandom<MyRecipeBook.Domain.Enums.DishType>()
-            }))
-            .RuleFor(r => r.UserId, _ => user.Id);
+                Text = faker.Lorem.Paragraph()
+            }],
+            [faker.PickRandom<MyRecipeBook.Domain.Enums.DishType>()]);
+
+        recipe.Id = 1;
+        recipe.SetImageIdentifier($"{Guid.NewGuid()}.png");
+
+        return recipe;
     }
 }

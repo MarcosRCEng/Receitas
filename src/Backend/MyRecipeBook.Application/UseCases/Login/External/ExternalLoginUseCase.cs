@@ -28,12 +28,7 @@ public class ExternalLoginUseCase : IExternalLoginUseCase
 
         if (user is null)
         {
-            user = new Domain.Entities.User
-            {
-                Name = name,
-                Email = email,
-                Password = "-"
-            };
+            user = Domain.Entities.User.Create(name, email, "-");
 
             await _repositoryWrite.Add(user);
             await _unitOfWork.Commit();

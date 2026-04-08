@@ -33,7 +33,7 @@ public class RequestDeleteUserUseCase : IRequestDeleteUserUseCase
 
         var user = await _userUpdateRepository.GetById(loggedUser.Id);
 
-        user.Active = false;
+        user.Deactivate();
         _userUpdateRepository.Update(user);
 
         await _outboxRepository.Add(new OutboxMessage

@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MyRecipeBook.Domain.Entities;
 using MyRecipeBook.Domain.Repositories.User;
+using MyRecipeBook.Domain.ValueObjects;
 
 namespace MyRecipeBook.Infrastructure.DataAccess.Repositories;
 
@@ -12,7 +13,7 @@ public class UserRepository : IUserWriteOnlyRepository, IUserReadOnlyRepository,
 
     public async Task Add(User user) => await _dbContext.Users.AddAsync(user);
 
-    public async Task<bool> ExistActiveUserWithEmail(string email) => await _dbContext.Users.AnyAsync(user => user.Email.Equals(email) && user.Active);
+    public async Task<bool> ExistActiveUserWithEmail(Email email) => await _dbContext.Users.AnyAsync(user => EF.Property<string>(user, "_email").Equals(email.Value) && user.Active);
 
     public async Task<bool> ExistActiveUserWithIdentifier(Guid userIdentifier) => await _dbContext.Users.AnyAsync(user => user.UserIdentifier.Equals(userIdentifier) && user.Active);
 
@@ -38,11 +39,11 @@ public class UserRepository : IUserWriteOnlyRepository, IUserReadOnlyRepository,
         _dbContext.Users.Remove(user);
     }
 
-    public async Task<User?> GetByEmail(string email)
+    public async Task<User?> GetByEmail(Email email)
     {
         return await _dbContext
             .Users
             .AsNoTracking()
-            .FirstOrDefaultAsync(user => user.Active && user.Email.Equals(email));
+            .FirstOrDefaultAsync(user => user.Active && EF.Property<string>(user, "_email").Equals(email.Value));
     }
 }

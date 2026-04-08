@@ -1,6 +1,7 @@
 using FluentAssertions;
 using MyRecipeBook.Domain.Entities;
 using MyRecipeBook.Domain.Enums;
+using MyRecipeBook.Domain.ValueObjects;
 using Xunit;
 
 namespace UseCases.Test.Recipe.Entity;
@@ -12,14 +13,14 @@ public class RecipeEntityTest
     {
         var recipe = MyRecipeBook.Domain.Entities.Recipe.Create(
             userId: 1,
-            title: "Recipe",
+            title: new RecipeTitle("Recipe"),
             cookingTime: CookingTime.Less_10_Minutes,
             difficulty: Difficulty.Low,
             ingredients: ["Salt"],
             instructions: [new Instruction { Step = 1, Text = "Mix" }],
             dishTypes: [MyRecipeBook.Domain.Enums.DishType.Breakfast]);
 
-        recipe.UpdateTitle("  New title  ");
+        recipe.UpdateTitle(new RecipeTitle("  New title  "));
 
         recipe.Title.Should().Be("New title");
     }
@@ -29,7 +30,7 @@ public class RecipeEntityTest
     {
         var recipe = MyRecipeBook.Domain.Entities.Recipe.Create(
             userId: 1,
-            title: "Recipe",
+            title: new RecipeTitle("Recipe"),
             cookingTime: CookingTime.Less_10_Minutes,
             difficulty: Difficulty.Low,
             ingredients: ["Salt"],

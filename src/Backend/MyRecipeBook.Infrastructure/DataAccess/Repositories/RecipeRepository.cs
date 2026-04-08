@@ -47,7 +47,7 @@ public sealed class RecipeRepository : IRecipeWriteOnlyRepository, IRecipeReadOn
         if (filters.RecipeTitle_Ingredient.NotEmpty())
         {
             query = query.Where(
-                recipe => recipe.Title.Contains(filters.RecipeTitle_Ingredient)
+                recipe => EF.Property<string>(recipe, "_title").Contains(filters.RecipeTitle_Ingredient)
                 || recipe.Ingredients.Any(ingredient => ingredient.Item.Contains(filters.RecipeTitle_Ingredient)));
         }
 

@@ -15,5 +15,19 @@ public class MyRecipeBookDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(MyRecipeBookDbContext).Assembly);
+
+        modelBuilder.Entity<User>()
+            .Ignore(user => user.Email);
+
+        modelBuilder.Entity<User>()
+            .Property<string>("_email")
+            .HasColumnName("Email");
+
+        modelBuilder.Entity<Recipe>()
+            .Ignore(recipe => recipe.Title);
+
+        modelBuilder.Entity<Recipe>()
+            .Property<string>("_title")
+            .HasColumnName("Title");
     }
 }

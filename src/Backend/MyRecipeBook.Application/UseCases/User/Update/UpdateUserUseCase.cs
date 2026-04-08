@@ -5,6 +5,7 @@ using MyRecipeBook.Domain.Services.LoggedUser;
 using MyRecipeBook.Exceptions.ExceptionsBase;
 using MyRecipeBook.Exceptions;
 using MyRecipeBook.Domain.Extensions;
+using MyRecipeBook.Domain.ValueObjects;
 
 namespace MyRecipeBook.Application.UseCases.User.Update;
 
@@ -35,22 +36,31 @@ public class UpdateUserUseCase : IUpdateUserUseCase
 
         var user = await _repository.GetById(loggedUser.Id);
 
-        user.UpdateProfile(request.Name, request.Email);
+        user.UpdateProfile(request.Name, new Email(request.Email));
 
         _repository.Update(user);
 
         await _unitOfWork.Commit();
     }
 
-    private async Task Validate(RequestUpdateUserJson request, string currentEmail)
+    private async Task Validate(RequestUpdateUserJson request, Email currentEmail)
     {
         var validator = new UpdateUserValidator();
 
         var result = await validator.ValidateAsync(request);
 
-        if (currentEmail.Equals(request.Email).IsFalse())
+        if (result.IsValid.IsFalse())
         {
-            var userExist = await _userReadOnlyRepository.ExistActiveUserWithEmail(request.Email);
+            var errorMessages = result.Errors.Select(error => error.ErrorMessage).ToList();
+
+            throw new ErrorOnValidationException(errorMessages);
+        }
+
+        var requestEmail = new Email(request.Email);
+
+        if (currentEmail.Equals(requestEmail).IsFalse())
+        {
+            var userExist = await _userReadOnlyRepository.ExistActiveUserWithEmail(requestEmail);
             if (userExist)
                 result.Errors.Add(new FluentValidation.Results.ValidationFailure("email", ResourceMessagesException.EMAIL_ALREADY_REGISTERED));
         }

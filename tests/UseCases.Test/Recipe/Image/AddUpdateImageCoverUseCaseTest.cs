@@ -6,6 +6,7 @@ using CommonTestUtilities.Requests;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using MyRecipeBook.Application.UseCases.Recipe.Image;
+using MyRecipeBook.Domain.ValueObjects;
 using MyRecipeBook.Exceptions;
 using MyRecipeBook.Exceptions.ExceptionsBase;
 using UseCases.Test.Recipe.InlineDatas;
@@ -35,7 +36,7 @@ public class AddUpdateImageCoverUseCaseTest
         (var user, _) = UserBuilder.Build();
         var recipe = MyRecipeBook.Domain.Entities.Recipe.Create(
             user.Id,
-            "Recipe",
+            new RecipeTitle("Recipe"),
             MyRecipeBook.Domain.Enums.CookingTime.Less_10_Minutes,
             MyRecipeBook.Domain.Enums.Difficulty.Low,
             ["Salt"],

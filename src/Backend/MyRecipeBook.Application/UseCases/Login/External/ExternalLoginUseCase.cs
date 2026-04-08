@@ -1,6 +1,7 @@
 ﻿using MyRecipeBook.Domain.Repositories;
 using MyRecipeBook.Domain.Repositories.User;
 using MyRecipeBook.Domain.Security.Tokens;
+using MyRecipeBook.Domain.ValueObjects;
 
 namespace MyRecipeBook.Application.UseCases.Login.External;
 public class ExternalLoginUseCase : IExternalLoginUseCase
@@ -24,11 +25,12 @@ public class ExternalLoginUseCase : IExternalLoginUseCase
 
     public async Task<string> Execute(string name, string email)
     {
-        var user = await _repository.GetByEmail(email);
+        var userEmail = new Email(email);
+        var user = await _repository.GetByEmail(userEmail);
 
         if (user is null)
         {
-            user = Domain.Entities.User.Create(name, email, "-");
+            user = Domain.Entities.User.Create(name, userEmail, "-");
 
             await _repositoryWrite.Add(user);
             await _unitOfWork.Commit();

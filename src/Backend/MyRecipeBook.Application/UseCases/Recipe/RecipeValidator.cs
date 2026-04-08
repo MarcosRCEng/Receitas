@@ -2,12 +2,14 @@
 using MyRecipeBook.Communication.Requests;
 using MyRecipeBook.Exceptions;
 
+using MyRecipeBook.Application.SharedValidators;
+
 namespace MyRecipeBook.Application.UseCases.Recipe;
 public class RecipeValidator : AbstractValidator<RequestRecipeJson>
 {
     public RecipeValidator()
     {
-        RuleFor(recipe => recipe.Title).NotEmpty().WithMessage(ResourceMessagesException.RECIPE_TITLE_EMPTY);
+        RuleFor(recipe => recipe.Title).SetValidator(new RecipeTitleValidator<RequestRecipeJson>());
         RuleFor(recipe => recipe.CookingTime).IsInEnum().WithMessage(ResourceMessagesException.COOKING_TIME_NOT_SUPPORTED);
         RuleFor(recipe => recipe.Difficulty).IsInEnum().WithMessage(ResourceMessagesException.DIFFICULTY_LEVEL_NOT_SUPPORTED);
         RuleFor(recipe => recipe.Ingredients.Count).GreaterThan(0).WithMessage(ResourceMessagesException.AT_LEAST_ONE_INGREDIENT);

@@ -1,9 +1,13 @@
 ﻿using MyRecipeBook.Domain.Enums;
 
 namespace MyRecipeBook.Domain.Entities;
+
 public class Recipe : EntityBase
 {
-    public string Title { get; private set; } = string.Empty;
+    private string _title = string.Empty;
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public MyRecipeBook.Domain.ValueObjects.RecipeTitle Title => new(_title);
     public CookingTime? CookingTime { get; private set; }
     public Difficulty? Difficulty { get; private set; }
     public IList<Ingredient> Ingredients { get; private set; } = [];
@@ -14,7 +18,7 @@ public class Recipe : EntityBase
 
     public static Recipe Create(
         long userId,
-        string title,
+        MyRecipeBook.Domain.ValueObjects.RecipeTitle title,
         CookingTime? cookingTime,
         Difficulty? difficulty,
         IEnumerable<string> ingredients,
@@ -39,19 +43,16 @@ public class Recipe : EntityBase
         UserId = userId;
     }
 
-    public void UpdateDetails(string title, CookingTime? cookingTime, Difficulty? difficulty)
+    public void UpdateDetails(MyRecipeBook.Domain.ValueObjects.RecipeTitle title, CookingTime? cookingTime, Difficulty? difficulty)
     {
         UpdateTitle(title);
         CookingTime = cookingTime;
         Difficulty = difficulty;
     }
 
-    public void UpdateTitle(string title)
+    public void UpdateTitle(MyRecipeBook.Domain.ValueObjects.RecipeTitle title)
     {
-        if (string.IsNullOrWhiteSpace(title))
-            throw new ArgumentException("Recipe title cannot be empty.", nameof(title));
-
-        Title = title.Trim();
+        _title = title.Value;
     }
 
     public void AddIngredient(string item)

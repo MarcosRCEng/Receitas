@@ -7,6 +7,7 @@ using MyRecipeBook.Domain.Repositories;
 using MyRecipeBook.Domain.Repositories.Recipe;
 using MyRecipeBook.Domain.Services.LoggedUser;
 using MyRecipeBook.Domain.Services.Storage;
+using MyRecipeBook.Domain.ValueObjects;
 using MyRecipeBook.Exceptions;
 using MyRecipeBook.Exceptions.ExceptionsBase;
 
@@ -45,7 +46,7 @@ public class RegisterRecipeUseCase : IRegisterRecipeUseCase
 
         var recipe = Domain.Entities.Recipe.Create(
             loggedUser.Id,
-            request.Title,
+            new RecipeTitle(request.Title),
             request.CookingTime is null ? null : (Domain.Enums.CookingTime)(int)request.CookingTime.Value,
             request.Difficulty is null ? null : (Domain.Enums.Difficulty)(int)request.Difficulty.Value,
             request.Ingredients,

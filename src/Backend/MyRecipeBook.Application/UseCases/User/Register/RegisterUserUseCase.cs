@@ -46,9 +46,11 @@ public class RegisterUserUseCase : IRegisterUserUseCase
     {
         await Validate(request);
 
+        var email = new Email(request.Email);
+
         var user = Domain.Entities.User.Create(
             request.Name,
-            request.Email,
+            email,
             _passwordEncripter.Encrypt(request.Password));
 
         await _writeOnlyRepository.Add(user);
@@ -90,7 +92,14 @@ public class RegisterUserUseCase : IRegisterUserUseCase
 
         var result = await validator.ValidateAsync(request);
 
-        var emailExist = await _readOnlyRepository.ExistActiveUserWithEmail(request.Email);
+        if (result.IsValid.IsFalse())
+        {
+            var errorMessages = result.Errors.Select(e => e.ErrorMessage).ToList();
+
+            throw new ErrorOnValidationException(errorMessages);
+        }
+
+        var emailExist = await _readOnlyRepository.ExistActiveUserWithEmail(new Email(request.Email));
         if (emailExist)
             result.Errors.Add(new FluentValidation.Results.ValidationFailure(string.Empty, ResourceMessagesException.EMAIL_ALREADY_REGISTERED));
 

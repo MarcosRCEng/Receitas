@@ -2,6 +2,7 @@
 using MyRecipeBook.Communication.Enums;
 using MyRecipeBook.Communication.Requests;
 using MyRecipeBook.Communication.Responses;
+using MyRecipeBook.Domain.ValueObjects;
 using Sqids;
 
 namespace MyRecipeBook.Application.Services.AutoMapper;
@@ -41,6 +42,9 @@ public class AutoMapping : Profile
 
     private void DomainToResponse()
     {
+        CreateMap<Email, string>().ConvertUsing(source => source.Value);
+        CreateMap<RecipeTitle, string>().ConvertUsing(source => source.Value);
+
         CreateMap<Domain.Entities.User, ResponseUserProfileJson>();
 
         CreateMap<Domain.Entities.Recipe, ResponseRegiteredRecipeJson>()

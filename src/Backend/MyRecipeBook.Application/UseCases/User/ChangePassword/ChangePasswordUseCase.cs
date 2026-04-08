@@ -48,9 +48,9 @@ public class ChangePasswordUseCase : IChangePasswordUseCase
         var result = new ChangePasswordValidator().Validate(request);
 
         if (_passwordEncripter.IsValid(request.Password, loggedUser.Password).IsFalse())
-            result.Errors.Add(new FluentValidation.Results.ValidationFailure(string.Empty, ResourceMessagesException.PASSWORD_DIFFERENT_CURRENT_PASSWORD));
+            throw new BusinessRuleException(ResourceMessagesException.PASSWORD_DIFFERENT_CURRENT_PASSWORD);
 
         if (result.IsValid.IsFalse())
-            throw new ErrorOnValidationException(result.Errors.Select(e => e.ErrorMessage).ToList());
+            throw new ValidationException(result.Errors.Select(e => e.ErrorMessage).ToList());
     }
 }

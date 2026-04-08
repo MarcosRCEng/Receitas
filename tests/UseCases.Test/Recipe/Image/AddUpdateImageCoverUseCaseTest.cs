@@ -79,7 +79,7 @@ public class AddUpdateImageCoverUseCaseTest
 
         var act = async () => await useCase.Execute(recipe.Id, file);
 
-        (await act.Should().ThrowAsync<ErrorOnValidationException>())
+        (await act.Should().ThrowAsync<ValidationException>())
             .Where(e => e.GetErrorMessages().Count == 1 &&
                 e.GetErrorMessages().Contains(ResourceMessagesException.ONLY_IMAGES_ACCEPTED));
     }

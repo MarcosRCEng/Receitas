@@ -96,18 +96,13 @@ public class RegisterUserUseCase : IRegisterUserUseCase
         {
             var errorMessages = result.Errors.Select(e => e.ErrorMessage).ToList();
 
-            throw new ErrorOnValidationException(errorMessages);
+            throw new ValidationException(errorMessages);
         }
 
         var emailExist = await _readOnlyRepository.ExistActiveUserWithEmail(new Email(request.Email));
         if (emailExist)
-            result.Errors.Add(new FluentValidation.Results.ValidationFailure(string.Empty, ResourceMessagesException.EMAIL_ALREADY_REGISTERED));
-
-        if (result.IsValid.IsFalse())
         {
-            var errorMessages = result.Errors.Select(e => e.ErrorMessage).ToList();
-
-            throw new ErrorOnValidationException(errorMessages);
+            throw new BusinessRuleException(ResourceMessagesException.EMAIL_ALREADY_REGISTERED);
         }
     }
 }

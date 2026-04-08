@@ -60,7 +60,7 @@ public class FilterRecipeUseCase : IFilterRecipeUseCase
         {
             var errorMessages = result.Errors.Select(error => error.ErrorMessage).Distinct().ToList();
 
-            throw new ErrorOnValidationException(errorMessages);
+            throw new ValidationException(errorMessages);
         }
     }
 }

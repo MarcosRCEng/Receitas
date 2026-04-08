@@ -20,24 +20,12 @@ public class AuthenticatedUserFilter : IAsyncAuthorizationFilter
 
     public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
-        try
-        {
-            var userIdentifier = UserIdentifier(context);
+        var userIdentifier = UserIdentifier(context);
 
-            var exist = await _repository.ExistActiveUserWithIdentifier(userIdentifier);
-            if (exist.IsFalse())
-            {
-                throw new UnauthorizedException(ResourceMessagesException.USER_WITHOUT_PERMISSION_ACCESS_RESOURCE);
-            }
-        }
-        catch (MyRecipeBookException myRecipeBookException)
+        var exist = await _repository.ExistActiveUserWithIdentifier(userIdentifier);
+        if (exist.IsFalse())
         {
-            context.HttpContext.Response.StatusCode = (int)myRecipeBookException.GetStatusCode();
-            context.Result = new ObjectResult(new ResponseErrorJson(myRecipeBookException.GetErrorMessages()));
-        }
-        catch
-        {
-            context.Result = new UnauthorizedObjectResult(new ResponseErrorJson(ResourceMessagesException.USER_WITHOUT_PERMISSION_ACCESS_RESOURCE));
+            throw new UnauthorizedException(ResourceMessagesException.USER_WITHOUT_PERMISSION_ACCESS_RESOURCE);
         }
     }
 

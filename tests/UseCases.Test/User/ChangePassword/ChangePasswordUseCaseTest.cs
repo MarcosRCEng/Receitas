@@ -44,7 +44,7 @@ public class ChangePasswordUseCaseTest
 
         Func<Task> act = async () => { await useCase.Execute(request); };
 
-        (await act.Should().ThrowAsync<ErrorOnValidationException>())
+        (await act.Should().ThrowAsync<ValidationException>())
             .Where(e => e.GetErrorMessages().Count == 1 &&
                 e.GetErrorMessages().Contains(ResourceMessagesException.PASSWORD_EMPTY));
     }
@@ -60,7 +60,7 @@ public class ChangePasswordUseCaseTest
 
         Func<Task> act = async () => { await useCase.Execute(request); };
 
-        await act.Should().ThrowAsync<ErrorOnValidationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .Where(e => e.GetErrorMessages().Count == 1 &&
                 e.GetErrorMessages().Contains(ResourceMessagesException.PASSWORD_DIFFERENT_CURRENT_PASSWORD));
     }

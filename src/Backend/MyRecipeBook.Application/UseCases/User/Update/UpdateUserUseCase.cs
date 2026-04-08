@@ -53,7 +53,7 @@ public class UpdateUserUseCase : IUpdateUserUseCase
         {
             var errorMessages = result.Errors.Select(error => error.ErrorMessage).ToList();
 
-            throw new ErrorOnValidationException(errorMessages);
+            throw new ValidationException(errorMessages);
         }
 
         var requestEmail = new Email(request.Email);
@@ -62,14 +62,7 @@ public class UpdateUserUseCase : IUpdateUserUseCase
         {
             var userExist = await _userReadOnlyRepository.ExistActiveUserWithEmail(requestEmail);
             if (userExist)
-                result.Errors.Add(new FluentValidation.Results.ValidationFailure("email", ResourceMessagesException.EMAIL_ALREADY_REGISTERED));
-        }
-
-        if (result.IsValid.IsFalse())
-        {
-            var errorMessages = result.Errors.Select(error => error.ErrorMessage).ToList();
-
-            throw new ErrorOnValidationException(errorMessages);
+                throw new BusinessRuleException(ResourceMessagesException.EMAIL_ALREADY_REGISTERED);
         }
     }
 }

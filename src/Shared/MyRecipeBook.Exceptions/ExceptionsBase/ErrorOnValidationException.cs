@@ -1,16 +1,10 @@
 ﻿using System.Net;
 
 namespace MyRecipeBook.Exceptions.ExceptionsBase;
-public class ErrorOnValidationException : MyRecipeBookException
+[Obsolete("Use ValidationException instead.")]
+public class ErrorOnValidationException : ValidationException
 {
-    private readonly IList<string> _errorMessages;
-
-    public ErrorOnValidationException(IList<string> errorMessages) : base(string.Empty)
+    public ErrorOnValidationException(IList<string> errorMessages) : base(errorMessages)
     {
-        _errorMessages = errorMessages;
     }
-
-    public override IList<string> GetErrorMessages() => _errorMessages;
-
-    public override HttpStatusCode GetStatusCode() => HttpStatusCode.BadRequest;
 }

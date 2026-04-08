@@ -43,7 +43,7 @@ public class AddUpdateImageCoverUseCase : IAddUpdateImageCoverUseCase
 
         if (isValidImage.IsFalse())
         {
-            throw new ErrorOnValidationException([ResourceMessagesException.ONLY_IMAGES_ACCEPTED]);
+            throw new ValidationException([ResourceMessagesException.ONLY_IMAGES_ACCEPTED]);
         }
 
         if (string.IsNullOrEmpty(recipe.ImageIdentifier))

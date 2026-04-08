@@ -68,8 +68,6 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-builder.Services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter)));
-
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure();
 builder.Services.AddAuthentication(options =>
@@ -125,6 +123,8 @@ builder.Services.AddHealthChecks().AddDbContextCheck<MyRecipeBookDbContext>();
 
 var app = builder.Build();
 var testEnvironmentSettings = app.Services.GetRequiredService<IOptions<TestEnvironmentSettings>>().Value;
+
+app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 app.MapHealthChecks("/Health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {

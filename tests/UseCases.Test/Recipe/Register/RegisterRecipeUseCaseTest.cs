@@ -60,7 +60,7 @@ public class RegisterRecipeUseCaseTest
 
         Func<Task> act = async () => { await useCase.Execute(request); };
 
-        (await act.Should().ThrowAsync<ErrorOnValidationException>())
+        (await act.Should().ThrowAsync<ValidationException>())
             .Where(e => e.GetErrorMessages().Count == 1 &&
                 e.GetErrorMessages().Contains(ResourceMessagesException.RECIPE_TITLE_EMPTY));
     }
@@ -78,7 +78,7 @@ public class RegisterRecipeUseCaseTest
 
         var act = async () => { await useCase.Execute(request); };
 
-        (await act.Should().ThrowAsync<ErrorOnValidationException>())
+        (await act.Should().ThrowAsync<ValidationException>())
             .Where(e => e.GetErrorMessages().Count == 1 &&
                 e.GetErrorMessages().Contains(ResourceMessagesException.ONLY_IMAGES_ACCEPTED));
     }

@@ -62,6 +62,6 @@ public class UpdateRecipeUseCase : IUpdateRecipeUseCase
         var result = new RecipeValidator().Validate(request);
 
         if (result.IsValid.IsFalse())
-            throw new ErrorOnValidationException(result.Errors.Select(e => e.ErrorMessage).Distinct().ToList());
+            throw new ValidationException(result.Errors.Select(e => e.ErrorMessage).Distinct().ToList());
     }
 }

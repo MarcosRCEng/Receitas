@@ -61,7 +61,7 @@ public class RegisterRecipeUseCase : IRegisterRecipeUseCase
 
             if (isValidImage.IsFalse())
             {
-                throw new ErrorOnValidationException([ResourceMessagesException.ONLY_IMAGES_ACCEPTED]);
+            throw new ValidationException([ResourceMessagesException.ONLY_IMAGES_ACCEPTED]);
             }
 
             recipe.SetImageIdentifier($"{Guid.NewGuid()}{extension}");
@@ -82,6 +82,6 @@ public class RegisterRecipeUseCase : IRegisterRecipeUseCase
         var result = new RecipeValidator().Validate(request);
 
         if (result.IsValid.IsFalse())
-            throw new ErrorOnValidationException(result.Errors.Select(e => e.ErrorMessage).Distinct().ToList());
+            throw new ValidationException(result.Errors.Select(e => e.ErrorMessage).Distinct().ToList());
     }
 }

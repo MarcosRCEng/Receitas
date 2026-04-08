@@ -12,8 +12,12 @@ namespace WebApi.Test.User.Register;
 public class RegisterUserTest : MyRecipeBookClassFixture
 {
     private readonly string METHOD = "user";
+    private readonly string _email;
 
-    public RegisterUserTest(CustomWebApplicationFactory factory) : base(factory) { }
+    public RegisterUserTest(CustomWebApplicationFactory factory) : base(factory)
+    {
+        _email = factory.GetEmail();
+    }
 
     [Fact]
     public async Task Success()
@@ -50,6 +54,28 @@ public class RegisterUserTest : MyRecipeBookClassFixture
         var errors = responseData.RootElement.GetProperty("errors").EnumerateArray();
 
         var expectedMessage = ResourceMessagesException.ResourceManager.GetString("NAME_EMPTY", new CultureInfo(culture));
+
+        errors.Should().ContainSingle().And.Contain(error => error.GetString()!.Equals(expectedMessage));
+    }
+
+    [Theory]
+    [ClassData(typeof(CultureInlineDataTest))]
+    public async Task Error_Email_Already_Registered(string culture)
+    {
+        var request = RequestRegisterUserJsonBuilder.Build();
+        request.Email = _email;
+
+        var response = await DoPost(method: METHOD, request: request, culture: culture);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+
+        await using var responseBody = await response.Content.ReadAsStreamAsync();
+
+        var responseData = await JsonDocument.ParseAsync(responseBody);
+
+        var errors = responseData.RootElement.GetProperty("errors").EnumerateArray();
+
+        var expectedMessage = ResourceMessagesException.ResourceManager.GetString("EMAIL_ALREADY_REGISTERED", new CultureInfo(culture));
 
         errors.Should().ContainSingle().And.Contain(error => error.GetString()!.Equals(expectedMessage));
     }

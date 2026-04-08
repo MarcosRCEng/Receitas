@@ -39,6 +39,6 @@ public class GenerateRecipeUseCase : IGenerateRecipeUseCase
         var result = new GenerateRecipeValidator().Validate(request);
 
         if (result.IsValid.IsFalse())
-            throw new ErrorOnValidationException(result.Errors.Select(e => e.ErrorMessage).ToList());
+            throw new ValidationException(result.Errors.Select(e => e.ErrorMessage).ToList());
     }
 }

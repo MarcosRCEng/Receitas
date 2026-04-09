@@ -8,6 +8,7 @@ using Microsoft.OpenApi.Models;
 using MyRecipeBook.API.BackgroundServices;
 using MyRecipeBook.API.Converters;
 using MyRecipeBook.API.Filters;
+using MyRecipeBook.API.HealthChecks;
 using MyRecipeBook.API.Middleware;
 using MyRecipeBook.API.Token;
 using MyRecipeBook.Application;
@@ -130,7 +131,10 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddHostedService<OutboxMessagePublisherService>();
 builder.Services.AddHostedService<DeleteUserService>();
 
-builder.Services.AddHealthChecks().AddDbContextCheck<MyRecipeBookDbContext>();
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<MyRecipeBookDbContext>("database")
+    .AddCheck<AzureServiceBusHealthCheck>("service_bus")
+    .AddCheck<BlobStorageHealthCheck>("blob_storage");
 
 var app = builder.Build();
 var testEnvironmentSettings = app.Services.GetRequiredService<IOptions<TestEnvironmentSettings>>().Value;
@@ -159,15 +163,20 @@ app.UseSerilogRequestLogging(options =>
 });
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
-app.MapHealthChecks("/Health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+var healthCheckOptions = new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
     AllowCachingResponses = false,
+    ResponseWriter = HealthCheckResponseWriter.WriteAsync,
     ResultStatusCodes =
     {
         [HealthStatus.Healthy] = StatusCodes.Status200OK,
+        [HealthStatus.Degraded] = StatusCodes.Status503ServiceUnavailable,
         [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable
     }
-});
+};
+
+app.MapHealthChecks("/health", healthCheckOptions);
+app.MapHealthChecks("/Health", healthCheckOptions);
 
 if (app.Environment.IsDevelopment())
 {

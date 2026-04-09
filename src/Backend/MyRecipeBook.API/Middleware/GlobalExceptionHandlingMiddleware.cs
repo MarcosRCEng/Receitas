@@ -26,11 +26,22 @@ public class GlobalExceptionHandlingMiddleware
         }
         catch (MyRecipeBookException exception)
         {
+            _logger.LogWarning(
+                exception,
+                "Request failed with handled exception. Method: {RequestMethod}. Path: {RequestPath}. StatusCode: {StatusCode}",
+                context.Request.Method,
+                context.Request.Path,
+                (int)exception.GetStatusCode());
+
             await WriteErrorResponse(context, exception.GetStatusCode(), exception.GetErrorMessages());
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Unhandled exception while processing request.");
+            _logger.LogError(
+                exception,
+                "Unhandled exception while processing request. Method: {RequestMethod}. Path: {RequestPath}",
+                context.Request.Method,
+                context.Request.Path);
 
             await WriteErrorResponse(
                 context,

@@ -17,11 +17,22 @@ using MyRecipeBook.Domain.Settings;
 using MyRecipeBook.Infrastructure;
 using MyRecipeBook.Infrastructure.DataAccess;
 using MyRecipeBook.Infrastructure.Migrations;
+using Serilog;
+using Serilog.Events;
 using System.Text;
 
 const string AUTHENTICATION_TYPE = "Bearer";
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, services, configuration) =>
+{
+    configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext()
+        .Enrich.WithProperty("Application", "MyRecipeBook.API");
+});
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
 builder.Services.Configure<AzureServiceBusSettings>(builder.Configuration.GetSection(AzureServiceBusSettings.SectionName));
@@ -124,6 +135,28 @@ builder.Services.AddHealthChecks().AddDbContextCheck<MyRecipeBookDbContext>();
 var app = builder.Build();
 var testEnvironmentSettings = app.Services.GetRequiredService<IOptions<TestEnvironmentSettings>>().Value;
 
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseSerilogRequestLogging(options =>
+{
+    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        diagnosticContext.Set("CorrelationId", httpContext.TraceIdentifier);
+        diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value);
+        diagnosticContext.Set("RequestScheme", httpContext.Request.Scheme);
+        diagnosticContext.Set("UserAgent", httpContext.Request.Headers.UserAgent.ToString());
+    };
+
+    options.GetLevel = (httpContext, elapsed, exception) =>
+    {
+        if (exception is not null || httpContext.Response.StatusCode >= StatusCodes.Status500InternalServerError)
+            return LogEventLevel.Error;
+
+        if (httpContext.Response.StatusCode >= StatusCodes.Status400BadRequest)
+            return LogEventLevel.Warning;
+
+        return LogEventLevel.Information;
+    };
+});
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 app.MapHealthChecks("/Health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions

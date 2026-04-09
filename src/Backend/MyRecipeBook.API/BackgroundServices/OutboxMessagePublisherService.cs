@@ -18,21 +18,32 @@ public class OutboxMessagePublisherService : BackgroundService
     private readonly IServiceProvider _services;
     private readonly AzureServiceBusSettings _serviceBusSettings;
     private readonly TestEnvironmentSettings _testEnvironmentSettings;
+    private readonly ILogger<OutboxMessagePublisherService> _logger;
 
     public OutboxMessagePublisherService(
         IServiceProvider services,
         IOptions<AzureServiceBusSettings> serviceBusSettings,
-        IOptions<TestEnvironmentSettings> testEnvironmentSettings)
+        IOptions<TestEnvironmentSettings> testEnvironmentSettings,
+        ILogger<OutboxMessagePublisherService> logger)
     {
         _services = services;
         _serviceBusSettings = serviceBusSettings.Value;
         _testEnvironmentSettings = testEnvironmentSettings.Value;
+        _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         if (_testEnvironmentSettings.InMemoryTest || _serviceBusSettings.IsConfigured().Equals(false))
+        {
+            _logger.LogInformation(
+                "Outbox publisher service skipped. InMemoryTest: {InMemoryTest}. ServiceBusConfigured: {ServiceBusConfigured}",
+                _testEnvironmentSettings.InMemoryTest,
+                _serviceBusSettings.IsConfigured());
             return;
+        }
+
+        _logger.LogInformation("Outbox publisher service started.");
 
         while (stoppingToken.IsCancellationRequested.Equals(false))
         {
@@ -51,6 +62,13 @@ public class OutboxMessagePublisherService : BackgroundService
         var deleteUserQueue = scope.ServiceProvider.GetRequiredService<IDeleteUserQueue>();
 
         var messages = await outboxRepository.GetPending(MAX_MESSAGES_PER_RUN);
+
+        if (messages.Count > 0)
+        {
+            _logger.LogInformation(
+                "Publishing pending outbox messages. Count: {MessageCount}",
+                messages.Count);
+        }
 
         foreach (var message in messages)
         {
@@ -72,10 +90,22 @@ public class OutboxMessagePublisherService : BackgroundService
 
                 var messageMarkedAsProcessed = await outboxRepository.MarkAsProcessed(message.Id);
                 if (messageMarkedAsProcessed)
+                {
                     await unitOfWork.Commit();
+                    _logger.LogInformation(
+                        "Outbox message processed successfully. MessageId: {MessageId}. MessageType: {MessageType}",
+                        message.Id,
+                        message.Type);
+                }
             }
             catch (Exception exception)
             {
+                _logger.LogError(
+                    exception,
+                    "Error processing outbox message. MessageId: {MessageId}. MessageType: {MessageType}",
+                    message.Id,
+                    message.Type);
+
                 var messageMarkedAsFailed = await outboxRepository.MarkAsFailed(message.Id, exception.Message);
                 if (messageMarkedAsFailed)
                     await unitOfWork.Commit();

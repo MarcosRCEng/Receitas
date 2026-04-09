@@ -35,6 +35,8 @@ public class UpdateUserUseCase : IUpdateUserUseCase
         await Validate(request, loggedUser.Email);
 
         var user = await _repository.GetById(loggedUser.Id);
+        if (user is null)
+            throw new UnauthorizedException(ResourceMessagesException.INVALID_SESSION);
 
         user.UpdateProfile(request.Name, new Email(request.Email));
 

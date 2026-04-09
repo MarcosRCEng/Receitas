@@ -35,6 +35,8 @@ public class ChangePasswordUseCase : IChangePasswordUseCase
         Validate(request, loggedUser);
 
         var user = await _repository.GetById(loggedUser.Id);
+        if (user is null)
+            throw new UnauthorizedException(ResourceMessagesException.INVALID_SESSION);
 
         user.ChangePassword(_passwordEncripter.Encrypt(request.NewPassword));
 

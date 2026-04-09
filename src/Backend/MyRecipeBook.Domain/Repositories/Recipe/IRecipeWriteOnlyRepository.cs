@@ -2,5 +2,5 @@
 public interface IRecipeWriteOnlyRepository
 {
     Task Add(Entities.Recipe recipe);
-    Task Delete(long recipeId);
+    Task<bool> Delete(long recipeId);
 }

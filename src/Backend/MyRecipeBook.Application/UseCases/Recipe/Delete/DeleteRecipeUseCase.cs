@@ -41,7 +41,9 @@ public class DeleteRecipeUseCase : IDeleteRecipeUseCase
         if (recipe.ImageIdentifier.NotEmpty())
             await _blobStorageService.Delete(loggedUser, recipe.ImageIdentifier);
 
-        await _repositoryWrite.Delete(recipeId);
+        var deleted = await _repositoryWrite.Delete(recipeId);
+        if (deleted.IsFalse())
+            throw new NotFoundException(ResourceMessagesException.RECIPE_NOT_FOUND);
 
         await _unitOfWork.Commit();
     }

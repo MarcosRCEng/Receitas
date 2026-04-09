@@ -17,11 +17,11 @@ public class UserRepository : IUserWriteOnlyRepository, IUserReadOnlyRepository,
 
     public async Task<bool> ExistActiveUserWithIdentifier(Guid userIdentifier) => await _dbContext.Users.AnyAsync(user => user.UserIdentifier.Equals(userIdentifier) && user.Active);
 
-    public async Task<User> GetById(long id)
+    public async Task<User?> GetById(long id)
     {
         return await _dbContext
             .Users
-            .FirstAsync(user => user.Id == id);
+            .FirstOrDefaultAsync(user => user.Id == id);
     }
 
     public void Update(User user) => _dbContext.Users.Update(user);

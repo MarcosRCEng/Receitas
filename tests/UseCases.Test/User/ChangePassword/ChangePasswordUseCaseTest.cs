@@ -65,10 +65,30 @@ public class ChangePasswordUseCaseTest
                 e.GetErrorMessages().Contains(ResourceMessagesException.PASSWORD_DIFFERENT_CURRENT_PASSWORD));
     }
 
-    private static ChangePasswordUseCase CreateUseCase(MyRecipeBook.Domain.Entities.User user)
+    [Fact]
+    public async Task Error_User_Not_Found()
+    {
+        (var user, var password) = UserBuilder.Build();
+
+        var request = RequestChangePasswordJsonBuilder.Build();
+        request.Password = password;
+
+        var useCase = CreateUseCase(user, repositoryUserMissing: true);
+
+        Func<Task> act = async () => await useCase.Execute(request);
+
+        await act.Should().ThrowAsync<UnauthorizedException>()
+            .Where(e => e.GetErrorMessages().Count == 1 &&
+                e.GetErrorMessages().Contains(ResourceMessagesException.INVALID_SESSION));
+    }
+
+    private static ChangePasswordUseCase CreateUseCase(
+        MyRecipeBook.Domain.Entities.User user,
+        bool repositoryUserMissing = false)
     {
         var unitOfWork = UnitOfWorkBuilder.Build();
-        var userUpdateRepository = new UserUpdateOnlyRepositoryBuilder().GetById(user).Build();
+        var userFromRepository = repositoryUserMissing ? null : user;
+        var userUpdateRepository = new UserUpdateOnlyRepositoryBuilder().GetById(user.Id, userFromRepository).Build();
         var loggedUser = LoggedUserBuilder.Build(user);
         var passwordEncripter = PasswordEncripterBuilder.Build();
 

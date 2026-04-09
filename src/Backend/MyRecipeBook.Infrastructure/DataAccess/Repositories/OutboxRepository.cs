@@ -26,19 +26,27 @@ public class OutboxRepository : IOutboxRepository
             .ToListAsync();
     }
 
-    public async Task MarkAsProcessed(long id)
+    public async Task<bool> MarkAsProcessed(long id)
     {
-        var message = await _dbContext.OutboxMessages.FirstAsync(message => message.Id == id);
+        var message = await _dbContext.OutboxMessages.FirstOrDefaultAsync(message => message.Id == id);
+        if (message is null)
+            return false;
 
         message.ProcessedOn = DateTime.UtcNow;
         message.Error = null;
+
+        return true;
     }
 
-    public async Task MarkAsFailed(long id, string error)
+    public async Task<bool> MarkAsFailed(long id, string error)
     {
-        var message = await _dbContext.OutboxMessages.FirstAsync(message => message.Id == id);
+        var message = await _dbContext.OutboxMessages.FirstOrDefaultAsync(message => message.Id == id);
+        if (message is null)
+            return false;
 
         message.RetryCount++;
         message.Error = error;
+
+        return true;
     }
 }

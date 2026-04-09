@@ -70,14 +70,16 @@ public class OutboxMessagePublisherService : BackgroundService
                     throw new InvalidOperationException($"Unsupported outbox message type: {message.Type}");
                 }
 
-                await outboxRepository.MarkAsProcessed(message.Id);
+                var messageMarkedAsProcessed = await outboxRepository.MarkAsProcessed(message.Id);
+                if (messageMarkedAsProcessed)
+                    await unitOfWork.Commit();
             }
             catch (Exception exception)
             {
-                await outboxRepository.MarkAsFailed(message.Id, exception.Message);
+                var messageMarkedAsFailed = await outboxRepository.MarkAsFailed(message.Id, exception.Message);
+                if (messageMarkedAsFailed)
+                    await unitOfWork.Commit();
             }
-
-            await unitOfWork.Commit();
         }
     }
 }

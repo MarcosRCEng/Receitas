@@ -10,9 +10,17 @@ public class UserUpdateOnlyRepositoryBuilder
 
     public UserUpdateOnlyRepositoryBuilder() => _repository = new Mock<IUserUpdateOnlyRepository>();
 
-    public UserUpdateOnlyRepositoryBuilder GetById(User user)
+    public UserUpdateOnlyRepositoryBuilder GetById(User? user)
     {
-        _repository.Setup(x => x.GetById(user.Id)).ReturnsAsync(user);
+        if (user is not null)
+            _repository.Setup(x => x.GetById(user.Id)).ReturnsAsync(user);
+
+        return this;
+    }
+
+    public UserUpdateOnlyRepositoryBuilder GetById(long userId, User? user)
+    {
+        _repository.Setup(x => x.GetById(userId)).ReturnsAsync(user);
         return this;
     }
 

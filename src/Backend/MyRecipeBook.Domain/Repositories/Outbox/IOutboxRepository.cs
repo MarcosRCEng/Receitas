@@ -6,6 +6,6 @@ public interface IOutboxRepository
 {
     Task Add(OutboxMessage message);
     Task<IList<OutboxMessage>> GetPending(int maxMessages);
-    Task MarkAsProcessed(long id);
-    Task MarkAsFailed(long id, string error);
+    Task<bool> MarkAsProcessed(long id);
+    Task<bool> MarkAsFailed(long id, string error);
 }

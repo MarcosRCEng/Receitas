@@ -14,11 +14,15 @@ public sealed class RecipeRepository : IRecipeWriteOnlyRepository, IRecipeReadOn
 
     public async Task Add(Recipe recipe) => await _dbContext.Recipes.AddAsync(recipe);
 
-    public async Task Delete(long recipeId)
+    public async Task<bool> Delete(long recipeId)
     {
         var recipe = await _dbContext.Recipes.FindAsync(recipeId);
+        if (recipe is null)
+            return false;
 
-        _dbContext.Recipes.Remove(recipe!);
+        _dbContext.Recipes.Remove(recipe);
+
+        return true;
     }
 
     public async Task<IList<Recipe>> Filter(User user, FilterRecipesDto filters)

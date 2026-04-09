@@ -69,10 +69,30 @@ public class UpdateUserUseCaseTest
         user.Email.Should().NotBe(request.Email);
     }
 
-    private static UpdateUserUseCase CreateUseCase(MyRecipeBook.Domain.Entities.User user, string? email = null)
+    [Fact]
+    public async Task Error_User_Not_Found()
+    {
+        (var user, _) = UserBuilder.Build();
+
+        var request = RequestUpdateUserJsonBuilder.Build();
+
+        var useCase = CreateUseCase(user, userFromRepositoryMissing: true);
+
+        Func<Task> act = async () => await useCase.Execute(request);
+
+        await act.Should().ThrowAsync<UnauthorizedException>()
+            .Where(e => e.GetErrorMessages().Count == 1 &&
+                e.GetErrorMessages().Contains(ResourceMessagesException.INVALID_SESSION));
+    }
+
+    private static UpdateUserUseCase CreateUseCase(
+        MyRecipeBook.Domain.Entities.User user,
+        string? email = null,
+        bool userFromRepositoryMissing = false)
     {
         var unitOfWork = UnitOfWorkBuilder.Build();
-        var userUpdateRepository = new UserUpdateOnlyRepositoryBuilder().GetById(user).Build();
+        var userFromRepository = userFromRepositoryMissing ? null : user;
+        var userUpdateRepository = new UserUpdateOnlyRepositoryBuilder().GetById(user.Id, userFromRepository).Build();
         var loggedUser = LoggedUserBuilder.Build(user);
 
         var userReadOnlyRepositoryBuilder = new UserReadOnlyRepositoryBuilder();

@@ -5,6 +5,8 @@ using MyRecipeBook.Domain.Repositories.Outbox;
 using MyRecipeBook.Domain.Repositories.User;
 using MyRecipeBook.Domain.Services.LoggedUser;
 using MyRecipeBook.Domain.ValueObjects;
+using MyRecipeBook.Exceptions;
+using MyRecipeBook.Exceptions.ExceptionsBase;
 using System.Text.Json;
 
 namespace MyRecipeBook.Application.UseCases.User.Delete.Request;
@@ -32,6 +34,8 @@ public class RequestDeleteUserUseCase : IRequestDeleteUserUseCase
         var loggedUser = await _loggedUser.User();
 
         var user = await _userUpdateRepository.GetById(loggedUser.Id);
+        if (user is null)
+            throw new UnauthorizedException(ResourceMessagesException.INVALID_SESSION);
 
         user.Deactivate();
         _userUpdateRepository.Update(user);

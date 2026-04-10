@@ -219,7 +219,6 @@ var healthCheckOptions = new Microsoft.AspNetCore.Diagnostics.HealthChecks.Healt
 };
 
 app.MapHealthChecks("/health", healthCheckOptions);
-app.MapHealthChecks("/Health", healthCheckOptions);
 
 if (app.Environment.IsDevelopment())
 {

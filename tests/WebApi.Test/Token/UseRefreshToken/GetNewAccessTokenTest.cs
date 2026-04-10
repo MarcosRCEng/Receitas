@@ -38,7 +38,7 @@ public class GetNewAccessTokenTest : MyRecipeBookClassFixture
         var responseData = await JsonDocument.ParseAsync(responseBody);
 
         responseData.RootElement.GetProperty("accessToken").GetString().Should().NotBeNullOrWhiteSpace();
-        responseData.RootElement.GetProperty("refreshToken").GetString().Should().NotBeNullOrWhiteSpace();
+        responseData.RootElement.GetProperty("refreshToken").GetString().Should().NotBeNullOrWhiteSpace().And.NotBe(request.RefreshToken);
     }
 
     [Fact]

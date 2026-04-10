@@ -27,7 +27,7 @@ public class UpdateUserUseCaseTest
         await act.Should().NotThrowAsync();
 
         user.Name.Should().Be(request.Name);
-        user.Email.Should().Be(request.Email);
+        user.Email.Value.Should().Be(request.Email);
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public class UpdateUserUseCaseTest
                 e.GetErrorMessages().Contains(ResourceMessagesException.NAME_EMPTY));
 
         user.Name.Should().NotBe(request.Name);
-        user.Email.Should().NotBe(request.Email);
+        user.Email.Value.Should().NotBe(request.Email);
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public class UpdateUserUseCaseTest
                 e.GetErrorMessages().Contains(ResourceMessagesException.EMAIL_ALREADY_REGISTERED));
 
         user.Name.Should().NotBe(request.Name);
-        user.Email.Should().NotBe(request.Email);
+        user.Email.Value.Should().NotBe(request.Email);
     }
 
     [Fact]

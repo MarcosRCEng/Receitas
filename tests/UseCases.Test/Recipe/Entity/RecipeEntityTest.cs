@@ -22,7 +22,7 @@ public class RecipeEntityTest
 
         recipe.UpdateTitle(new RecipeTitle("  New title  "));
 
-        recipe.Title.Should().Be("New title");
+        recipe.Title.Value.Should().Be("New title");
     }
 
     [Fact]

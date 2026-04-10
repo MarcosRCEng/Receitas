@@ -6,11 +6,11 @@ using MyRecipeBook.Domain.Settings;
 namespace MyRecipeBook.API.HealthChecks;
 
 public class AzureServiceBusHealthCheck(
-    ServiceBusClient serviceBusClient,
+    IServiceProvider serviceProvider,
     IOptions<AzureServiceBusSettings> serviceBusSettings,
     IOptions<TestEnvironmentSettings> testEnvironmentSettings) : IHealthCheck
 {
-    private readonly ServiceBusClient _serviceBusClient = serviceBusClient;
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
     private readonly AzureServiceBusSettings _serviceBusSettings = serviceBusSettings.Value;
     private readonly TestEnvironmentSettings _testEnvironmentSettings = testEnvironmentSettings.Value;
 
@@ -28,7 +28,9 @@ public class AzureServiceBusHealthCheck(
 
         try
         {
-            await using var receiver = _serviceBusClient.CreateReceiver(_serviceBusSettings.QueueName);
+            var serviceBusClient = _serviceProvider.GetRequiredService<ServiceBusClient>();
+
+            await using var receiver = serviceBusClient.CreateReceiver(_serviceBusSettings.QueueName);
 
             await receiver.PeekMessageAsync(cancellationToken: cancellationToken);
 

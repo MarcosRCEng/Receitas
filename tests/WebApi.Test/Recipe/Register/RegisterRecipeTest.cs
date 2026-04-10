@@ -1,6 +1,6 @@
 ﻿using CommonTestUtilities.Requests;
-using CommonTestUtilities.Tokens;
 using FluentAssertions;
+using MyRecipeBook.Communication.Requests;
 using MyRecipeBook.Exceptions;
 using System.Globalization;
 using System.Net;
@@ -13,11 +13,13 @@ public class RegisterRecipeTest : MyRecipeBookClassFixture
 {
     private const string METHOD = "recipe";
 
-    private readonly Guid _userIdentifier;
+    private readonly string _email;
+    private readonly string _password;
 
     public RegisterRecipeTest(CustomWebApplicationFactory factory) : base(factory)
     {
-        _userIdentifier = factory.GetUserIdentifier();
+        _email = factory.GetEmail();
+        _password = factory.GetPassword();
     }
 
     [Fact]
@@ -25,7 +27,7 @@ public class RegisterRecipeTest : MyRecipeBookClassFixture
     {
         var request = RequestRegisterRecipeFormDataBuilder.Build();
 
-        var token = JwtTokenGeneratorBuilder.Build().Generate(_userIdentifier);
+        var token = await GetAccessToken();
 
         var response = await DoPostFormData(method: METHOD, request: request, token: token);
 
@@ -36,7 +38,18 @@ public class RegisterRecipeTest : MyRecipeBookClassFixture
         var responseData = await JsonDocument.ParseAsync(responseBody);
 
         responseData.RootElement.GetProperty("title").GetString().Should().Be(request.Title);
-        responseData.RootElement.GetProperty("id").GetString().Should().NotBeNullOrWhiteSpace();
+        var recipeId = responseData.RootElement.GetProperty("id").GetString();
+        recipeId.Should().NotBeNullOrWhiteSpace();
+
+        var getRecipeResponse = await DoGet($"{METHOD}/{recipeId}", token);
+
+        getRecipeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        await using var getRecipeResponseBody = await getRecipeResponse.Content.ReadAsStreamAsync();
+
+        var getRecipeResponseData = await JsonDocument.ParseAsync(getRecipeResponseBody);
+
+        getRecipeResponseData.RootElement.GetProperty("title").GetString().Should().Be(request.Title);
     }
 
     [Theory]
@@ -46,7 +59,7 @@ public class RegisterRecipeTest : MyRecipeBookClassFixture
         var request = RequestRegisterRecipeFormDataBuilder.Build();
         request.Title = string.Empty;
 
-        var token = JwtTokenGeneratorBuilder.Build().Generate(_userIdentifier);
+        var token = await GetAccessToken();
 
         var response = await DoPostFormData(method: METHOD, request: request, token: token, culture: culture);
 
@@ -61,5 +74,25 @@ public class RegisterRecipeTest : MyRecipeBookClassFixture
         var expectedMessage = ResourceMessagesException.ResourceManager.GetString("RECIPE_TITLE_EMPTY", new CultureInfo(culture));
 
         errors.Should().HaveCount(1).And.Contain(c => c.GetString()!.Equals(expectedMessage));
+    }
+
+    private async Task<string> GetAccessToken()
+    {
+        var loginResponse = await DoPost("login", new RequestLoginJson
+        {
+            Email = _email,
+            Password = _password
+        });
+
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        await using var responseBody = await loginResponse.Content.ReadAsStreamAsync();
+
+        var responseData = await JsonDocument.ParseAsync(responseBody);
+
+        return responseData.RootElement
+            .GetProperty("tokens")
+            .GetProperty("accessToken")
+            .GetString()!;
     }
 }

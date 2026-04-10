@@ -14,10 +14,12 @@ public class MyRecipeBookClassFixture : IClassFixture<CustomWebApplicationFactor
         string method,
         object request,
         string token = "",
-        string culture = "en")
+        string culture = "en",
+        string apiVersion = "")
     {
         ChangeRequestCulture(culture);
         AuthorizeRequest(token);
+        ChangeApiVersion(apiVersion);
 
         return await _httpClient.PostAsJsonAsync(method, request);
     }
@@ -26,10 +28,12 @@ public class MyRecipeBookClassFixture : IClassFixture<CustomWebApplicationFactor
     string method,
     object request,
     string token,
-    string culture = "en")
+    string culture = "en",
+    string apiVersion = "")
     {
         ChangeRequestCulture(culture);
         AuthorizeRequest(token);
+        ChangeApiVersion(apiVersion);
 
         var multipartContent = new MultipartFormDataContent();
 
@@ -55,26 +59,29 @@ public class MyRecipeBookClassFixture : IClassFixture<CustomWebApplicationFactor
         return await _httpClient.PostAsync(method, multipartContent);
     }
 
-    protected async Task<HttpResponseMessage> DoGet(string method, string token = "", string culture = "en")
+    protected async Task<HttpResponseMessage> DoGet(string method, string token = "", string culture = "en", string apiVersion = "")
     {
         ChangeRequestCulture(culture);
         AuthorizeRequest(token);
+        ChangeApiVersion(apiVersion);
 
         return await _httpClient.GetAsync(method);
     }
 
-    protected async Task<HttpResponseMessage> DoPut(string method, object request, string token, string culture = "en")
+    protected async Task<HttpResponseMessage> DoPut(string method, object request, string token, string culture = "en", string apiVersion = "")
     {
         ChangeRequestCulture(culture);
         AuthorizeRequest(token);
+        ChangeApiVersion(apiVersion);
 
         return await _httpClient.PutAsJsonAsync(method, request);
     }
 
-    protected async Task<HttpResponseMessage> DoDelete(string method, string token, string culture = "en")
+    protected async Task<HttpResponseMessage> DoDelete(string method, string token, string culture = "en", string apiVersion = "")
     {
         ChangeRequestCulture(culture);
         AuthorizeRequest(token);
+        ChangeApiVersion(apiVersion);
 
         return await _httpClient.DeleteAsync(method);
     }
@@ -88,9 +95,24 @@ public class MyRecipeBookClassFixture : IClassFixture<CustomWebApplicationFactor
     private void AuthorizeRequest(string token)
     {
         if (string.IsNullOrWhiteSpace(token))
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = null;
             return;
+        }
 
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+    }
+
+    private void ChangeApiVersion(string apiVersion)
+    {
+        const string ApiVersionHeaderName = "x-api-version";
+
+        _httpClient.DefaultRequestHeaders.Remove(ApiVersionHeaderName);
+
+        if (string.IsNullOrWhiteSpace(apiVersion))
+            return;
+
+        _httpClient.DefaultRequestHeaders.Add(ApiVersionHeaderName, apiVersion);
     }
 
     private static void AddListToMultipartContent(

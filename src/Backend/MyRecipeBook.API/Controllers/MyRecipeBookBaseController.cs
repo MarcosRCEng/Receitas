@@ -4,6 +4,7 @@ using MyRecipeBook.Domain.Extensions;
 
 namespace MyRecipeBook.API.Controllers;
 
+[Route("api/v{version:int:min(1)}/[controller]")]
 [Route("[controller]")]
 [ApiController]
 public class MyRecipeBookBaseController : ControllerBase

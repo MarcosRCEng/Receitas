@@ -204,6 +204,7 @@ app.UseSerilogRequestLogging(options =>
     };
 });
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
+app.UseMiddleware<ApiVersionHeaderMiddleware>();
 
 var healthCheckOptions = new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {

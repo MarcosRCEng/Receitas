@@ -66,4 +66,18 @@ public class DoLoginTest : MyRecipeBookClassFixture
 
         errors.Should().ContainSingle().And.Contain(error => error.GetString()!.Equals(expectedMessage));
     }
+
+    [Fact]
+    public async Task Error_When_Exceeding_Rate_Limit()
+    {
+        var request = RequestLoginJsonBuilder.Build();
+        HttpResponseMessage lastResponse = default!;
+
+        for (var attempt = 0; attempt < 11; attempt++)
+        {
+            lastResponse = await DoPost(method: METHOD, request: request);
+        }
+
+        lastResponse.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+    }
 }

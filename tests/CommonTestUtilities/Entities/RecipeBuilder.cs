@@ -36,12 +36,7 @@ public class RecipeBuilder
             faker.PickRandom<CookingTime>(),
             faker.PickRandom<Difficulty>(),
             [faker.Commerce.ProductName()],
-            [new Instruction
-            {
-                Id = 1,
-                Step = 1,
-                Text = faker.Lorem.Paragraph()
-            }],
+            [Instruction.Create(1, faker.Lorem.Paragraph())],
             [faker.PickRandom<MyRecipeBook.Domain.Enums.DishType>()]);
 
         recipe.Id = 1;

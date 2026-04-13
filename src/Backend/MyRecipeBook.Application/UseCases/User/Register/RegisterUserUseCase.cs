@@ -74,12 +74,11 @@ public class RegisterUserUseCase : IRegisterUserUseCase
     {
         var refreshToken = _refreshTokenGenerator.Generate();
 
-        await _tokenRepository.SaveNewRefreshToken(new RefreshToken
-        {
-            Value = refreshToken,
-            UserId = user.Id,
-            ExpiresOn = DateTime.UtcNow.AddDays(MyRecipeBookRuleConstants.REFRESH_TOKEN_EXPIRATION_DAYS)
-        });
+        await _tokenRepository.SaveNewRefreshToken(
+            RefreshToken.Create(
+                refreshToken,
+                user.Id,
+                DateTime.UtcNow.AddDays(MyRecipeBookRuleConstants.REFRESH_TOKEN_EXPIRATION_DAYS)));
 
         await _unitOfWork.Commit();
 

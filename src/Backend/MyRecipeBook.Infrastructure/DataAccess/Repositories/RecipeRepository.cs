@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query;
 using MyRecipeBook.Domain.Dtos;
 using MyRecipeBook.Domain.Entities;
 using MyRecipeBook.Domain.Extensions;
@@ -85,7 +84,7 @@ public sealed class RecipeRepository : IRecipeWriteOnlyRepository, IRecipeReadOn
             .ToListAsync();
     }
 
-    private IIncludableQueryable<Recipe, IList<DishType>> GetFullRecipe()
+    private IQueryable<Recipe> GetFullRecipe()
     {
         return _dbContext
             .Recipes

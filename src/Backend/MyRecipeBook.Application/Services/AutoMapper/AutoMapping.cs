@@ -31,13 +31,8 @@ public class AutoMapping : Profile
             .ForMember(dest => dest.ImageIdentifier, opt => opt.Ignore())
             .ForMember(dest => dest.UserId, opt => opt.Ignore());
 
-        CreateMap<string, Domain.Entities.Ingredient>()
-            .ForMember(dest => dest.Item, opt => opt.MapFrom(source => source));
-
-        CreateMap<DishType, Domain.Entities.DishType>()
-            .ForMember(dest => dest.Type, opt => opt.MapFrom(source => source));
-
-        CreateMap<RequestInstructionJson, Domain.Entities.Instruction>();
+        CreateMap<RequestInstructionJson, Domain.Entities.Instruction>()
+            .ConstructUsing(source => Domain.Entities.Instruction.Create(source.Step, source.Text));
     }
 
     private void DomainToResponse()

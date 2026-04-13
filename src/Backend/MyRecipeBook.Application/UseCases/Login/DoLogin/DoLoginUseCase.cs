@@ -58,12 +58,10 @@ public class DoLoginUseCase : IDoLoginUseCase
 
     private async Task<string> CreateAndSaveRefreshToken(Domain.Entities.User user)
     {
-        var refreshToken = new Domain.Entities.RefreshToken
-        {
-            Value = _refreshTokenGenerator.Generate(),
-            UserId = user.Id,
-            ExpiresOn = DateTime.UtcNow.AddDays(MyRecipeBookRuleConstants.REFRESH_TOKEN_EXPIRATION_DAYS)
-        };
+        var refreshToken = Domain.Entities.RefreshToken.Create(
+            _refreshTokenGenerator.Generate(),
+            user.Id,
+            DateTime.UtcNow.AddDays(MyRecipeBookRuleConstants.REFRESH_TOKEN_EXPIRATION_DAYS));
 
         await _tokenRepository.SaveNewRefreshToken(refreshToken);
 

@@ -5,14 +5,19 @@ using MyRecipeBook.Domain.ValueObjects;
 namespace CommonTestUtilities.Entities;
 public class RefreshTokenBuilder
 {
-    public static RefreshToken Build(User user)
+    public static RefreshToken Build(User user, DateTime? expiresOn = null, DateTime? revokedAt = null)
     {
-        return new Faker<RefreshToken>()
-            .RuleFor(r => r.Id, _ => 1)
-            .RuleFor(r => r.CreatedOn, f => f.Date.Soon(days: MyRecipeBookRuleConstants.REFRESH_TOKEN_EXPIRATION_DAYS))
-            .RuleFor(r => r.ExpiresOn, _ => DateTime.UtcNow.AddDays(MyRecipeBookRuleConstants.REFRESH_TOKEN_EXPIRATION_DAYS))
-            .RuleFor(r => r.Value, f => f.Lorem.Word())
-            .RuleFor(r => r.UserId, _ => user.Id)
-            .RuleFor(r => r.User, _ => user);
+        var faker = new Faker();
+        var refreshToken = RefreshToken.Create(
+            faker.Lorem.Word(),
+            user,
+            expiresOn ?? DateTime.UtcNow.AddDays(MyRecipeBookRuleConstants.REFRESH_TOKEN_EXPIRATION_DAYS));
+
+        refreshToken.Id = 1;
+
+        if (revokedAt.HasValue)
+            refreshToken.Revoke(revokedAt.Value);
+
+        return refreshToken;
     }
 }

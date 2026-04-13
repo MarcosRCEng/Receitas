@@ -32,8 +32,7 @@ public class OutboxRepository : IOutboxRepository
         if (message is null)
             return false;
 
-        message.ProcessedOn = DateTime.UtcNow;
-        message.Error = null;
+        message.MarkAsProcessed();
 
         return true;
     }
@@ -44,8 +43,7 @@ public class OutboxRepository : IOutboxRepository
         if (message is null)
             return false;
 
-        message.RetryCount++;
-        message.Error = error;
+        message.MarkAsFailed(error);
 
         return true;
     }

@@ -5,14 +5,23 @@ namespace MyRecipeBook.Domain.Entities;
 public class Recipe : EntityBase
 {
     private string _title = string.Empty;
+    private readonly List<Ingredient> _ingredients = [];
+    private readonly List<Instruction> _instructions = [];
+    private readonly List<DishType> _dishTypes = [];
+
+    private Recipe()
+    {
+        // EF Core materializes the aggregate through this constructor.
+    }
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public MyRecipeBook.Domain.ValueObjects.RecipeTitle Title => new(_title);
     public CookingTime? CookingTime { get; private set; }
     public Difficulty? Difficulty { get; private set; }
-    public IList<Ingredient> Ingredients { get; private set; } = [];
-    public IList<Instruction> Instructions { get; private set; } = [];
-    public IList<DishType> DishTypes { get; private set; } = [];
+    // Keep collection mutation inside the aggregate; EF Core fills the backing fields directly.
+    public IReadOnlyCollection<Ingredient> Ingredients => _ingredients.AsReadOnly();
+    public IReadOnlyCollection<Instruction> Instructions => _instructions.AsReadOnly();
+    public IReadOnlyCollection<DishType> DishTypes => _dishTypes.AsReadOnly();
     public string? ImageIdentifier { get; private set; }
     public long UserId { get; private set; }
 
@@ -57,20 +66,14 @@ public class Recipe : EntityBase
 
     public void AddIngredient(string item)
     {
-        if (string.IsNullOrWhiteSpace(item))
-            throw new ArgumentException("Ingredient item cannot be empty.", nameof(item));
-
-        Ingredients.Add(new Ingredient
-        {
-            Item = item.Trim()
-        });
+        _ingredients.Add(Ingredient.Create(item));
     }
 
     public void ReplaceIngredients(IEnumerable<string> ingredients)
     {
         ArgumentNullException.ThrowIfNull(ingredients);
 
-        Ingredients.Clear();
+        _ingredients.Clear();
 
         foreach (var ingredient in ingredients)
             AddIngredient(ingredient);
@@ -80,7 +83,7 @@ public class Recipe : EntityBase
     {
         ArgumentNullException.ThrowIfNull(instructions);
 
-        Instructions.Clear();
+        _instructions.Clear();
 
         foreach (var instruction in instructions)
         {
@@ -93,7 +96,7 @@ public class Recipe : EntityBase
             if (string.IsNullOrWhiteSpace(instruction.Text))
                 throw new ArgumentException("Instruction text cannot be empty.", nameof(instructions));
 
-            Instructions.Add(instruction);
+            _instructions.Add(instruction);
         }
     }
 
@@ -101,14 +104,11 @@ public class Recipe : EntityBase
     {
         ArgumentNullException.ThrowIfNull(dishTypes);
 
-        DishTypes.Clear();
+        _dishTypes.Clear();
 
         foreach (var dishType in dishTypes.Distinct())
         {
-            DishTypes.Add(new DishType
-            {
-                Type = dishType
-            });
+            _dishTypes.Add(DishType.Create(dishType));
         }
     }
 

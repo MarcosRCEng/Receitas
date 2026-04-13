@@ -40,14 +40,13 @@ public class RequestDeleteUserUseCase : IRequestDeleteUserUseCase
         user.Deactivate();
         _userUpdateRepository.Update(user);
 
-        await _outboxRepository.Add(new OutboxMessage
-        {
-            Type = OutboxMessageTypes.DELETE_USER_REQUESTED,
-            Payload = JsonSerializer.Serialize(new DeleteUserRequestedEvent
-            {
-                UserIdentifier = loggedUser.UserIdentifier
-            })
-        });
+        await _outboxRepository.Add(
+            OutboxMessage.Create(
+                OutboxMessageTypes.DELETE_USER_REQUESTED,
+                JsonSerializer.Serialize(new DeleteUserRequestedEvent
+                {
+                    UserIdentifier = loggedUser.UserIdentifier
+                })));
 
         await _unitOfWork.Commit();
     }

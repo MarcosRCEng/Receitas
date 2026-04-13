@@ -17,7 +17,7 @@ public class RecipeEntityTest
             cookingTime: CookingTime.Less_10_Minutes,
             difficulty: Difficulty.Low,
             ingredients: ["Salt"],
-            instructions: [new Instruction { Step = 1, Text = "Mix" }],
+            instructions: [Instruction.Create(1, "Mix")],
             dishTypes: [MyRecipeBook.Domain.Enums.DishType.Breakfast]);
 
         recipe.UpdateTitle(new RecipeTitle("  New title  "));
@@ -34,7 +34,7 @@ public class RecipeEntityTest
             cookingTime: CookingTime.Less_10_Minutes,
             difficulty: Difficulty.Low,
             ingredients: ["Salt"],
-            instructions: [new Instruction { Step = 1, Text = "Mix" }],
+            instructions: [Instruction.Create(1, "Mix")],
             dishTypes: [MyRecipeBook.Domain.Enums.DishType.Breakfast]);
 
         recipe.AddIngredient("Sugar");

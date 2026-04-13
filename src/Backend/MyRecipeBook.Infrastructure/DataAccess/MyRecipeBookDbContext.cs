@@ -23,11 +23,18 @@ public class MyRecipeBookDbContext : DbContext
             .Property<string>("_email")
             .HasColumnName("Email");
 
-        modelBuilder.Entity<Recipe>()
+        var recipeEntity = modelBuilder.Entity<Recipe>();
+
+        recipeEntity
             .Ignore(recipe => recipe.Title);
 
-        modelBuilder.Entity<Recipe>()
+        recipeEntity
             .Property<string>("_title")
             .HasColumnName("Title");
+
+        // EF Core writes directly to backing fields so the aggregate can expose read-only collections.
+        recipeEntity.Navigation(recipe => recipe.Ingredients).UsePropertyAccessMode(PropertyAccessMode.Field);
+        recipeEntity.Navigation(recipe => recipe.Instructions).UsePropertyAccessMode(PropertyAccessMode.Field);
+        recipeEntity.Navigation(recipe => recipe.DishTypes).UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

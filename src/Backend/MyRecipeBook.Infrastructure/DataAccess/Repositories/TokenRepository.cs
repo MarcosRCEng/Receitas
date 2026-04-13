@@ -26,7 +26,7 @@ public class TokenRepository : ITokenRepository
 
         var revokedAt = DateTime.UtcNow;
 
-        await activeTokens.ForEachAsync(token => token.RevokedAt = revokedAt);
+        await activeTokens.ForEachAsync(token => token.Revoke(revokedAt));
 
         await _dbContext.RefreshTokens.AddAsync(refreshToken);
     }

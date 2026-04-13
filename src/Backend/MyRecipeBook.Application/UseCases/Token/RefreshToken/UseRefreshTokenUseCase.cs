@@ -33,18 +33,16 @@ public class UseRefreshTokenUseCase : IUseRefreshTokenUseCase
         if(refreshToken is null)
             throw new RefreshTokenNotFoundException();
 
-        if (refreshToken.RevokedAt is not null)
+        if (refreshToken.IsRevoked)
             throw new RefreshTokenNotFoundException();
 
-        if (DateTime.Compare(refreshToken.ExpiresOn, DateTime.UtcNow) < 0)
+        if (refreshToken.IsExpired(DateTime.UtcNow))
             throw new RefreshTokenExpiredException();
 
-        var newRefreshToken = new Domain.Entities.RefreshToken
-        {
-            Value = _refreshTokenGenerator.Generate(),
-            UserId = refreshToken.UserId,
-            ExpiresOn = DateTime.UtcNow.AddDays(MyRecipeBookRuleConstants.REFRESH_TOKEN_EXPIRATION_DAYS)
-        };
+        var newRefreshToken = Domain.Entities.RefreshToken.Create(
+            _refreshTokenGenerator.Generate(),
+            refreshToken.UserId,
+            DateTime.UtcNow.AddDays(MyRecipeBookRuleConstants.REFRESH_TOKEN_EXPIRATION_DAYS));
 
         await _tokenRepository.SaveNewRefreshToken(newRefreshToken);
 

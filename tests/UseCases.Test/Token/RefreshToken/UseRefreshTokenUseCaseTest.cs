@@ -48,8 +48,7 @@ public class UseRefreshTokenUseCaseTest
     public async Task Error_RefreshToken_Expired()
     {
         (var user, _) = UserBuilder.Build();
-        var refreshToken = RefreshTokenBuilder.Build(user);
-        refreshToken.ExpiresOn = DateTime.UtcNow.AddDays(-1);
+        var refreshToken = RefreshTokenBuilder.Build(user, expiresOn: DateTime.UtcNow.AddDays(-1));
 
         var useCase = CreateUseCase(refreshToken);
 
@@ -66,8 +65,7 @@ public class UseRefreshTokenUseCaseTest
     public async Task Error_RefreshToken_Revoked()
     {
         (var user, _) = UserBuilder.Build();
-        var refreshToken = RefreshTokenBuilder.Build(user);
-        refreshToken.RevokedAt = DateTime.UtcNow;
+        var refreshToken = RefreshTokenBuilder.Build(user, revokedAt: DateTime.UtcNow);
 
         var useCase = CreateUseCase(refreshToken);
 

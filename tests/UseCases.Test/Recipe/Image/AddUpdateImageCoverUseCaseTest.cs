@@ -40,7 +40,7 @@ public class AddUpdateImageCoverUseCaseTest
             MyRecipeBook.Domain.Enums.CookingTime.Less_10_Minutes,
             MyRecipeBook.Domain.Enums.Difficulty.Low,
             ["Salt"],
-            [new MyRecipeBook.Domain.Entities.Instruction { Step = 1, Text = "Mix" }],
+            [MyRecipeBook.Domain.Entities.Instruction.Create(1, "Mix")],
             [MyRecipeBook.Domain.Enums.DishType.Breakfast]);
         recipe.Id = 1;
 

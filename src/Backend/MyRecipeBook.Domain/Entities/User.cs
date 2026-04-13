@@ -3,6 +3,11 @@ public class User : EntityBase
 {
     private string _email = string.Empty;
 
+    private User()
+    {
+        // EF Core materializes the aggregate through this constructor.
+    }
+
     public string Name { get; private set; } = string.Empty;
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public MyRecipeBook.Domain.ValueObjects.Email Email => new(_email);
@@ -37,6 +42,6 @@ public class User : EntityBase
 
     public void Deactivate()
     {
-        Active = false;
+        DeactivateEntity();
     }
 }

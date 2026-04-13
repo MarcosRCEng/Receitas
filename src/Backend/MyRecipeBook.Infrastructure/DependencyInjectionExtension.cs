@@ -2,6 +2,7 @@
 using Azure.Storage.Blobs;
 using FluentMigrator.Runner;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using MyRecipeBook.Domain.Enums;
@@ -35,8 +36,13 @@ namespace MyRecipeBook.Infrastructure;
 
 public static class DependencyInjectionExtension
 {
-    public static void AddInfrastructure(this IServiceCollection services)
+    public static void AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        var isInMemoryTest = configuration.GetValue<bool>(nameof(TestEnvironmentSettings.InMemoryTest));
+        var databaseSettings = configuration
+            .GetSection(DatabaseSettings.SectionName)
+            .Get<DatabaseSettings>() ?? new DatabaseSettings();
+
         AddPasswordEncrpter(services);
         AddRepositories(services);
         AddLoggedUser(services);
@@ -45,11 +51,11 @@ public static class DependencyInjectionExtension
         AddAzureStorage(services);
         AddQueue(services);
 
-        if (IsUnitTestEnvironment(services))
+        if (isInMemoryTest)
             return;
 
         AddDbContext(services);
-        AddFluentMigrator(services);
+        AddFluentMigrator(services, databaseSettings);
     }
 
     private static void AddDbContext(IServiceCollection services)
@@ -93,9 +99,8 @@ public static class DependencyInjectionExtension
     }
 
 
-    private static void AddFluentMigrator(IServiceCollection services)
+    private static void AddFluentMigrator(IServiceCollection services, DatabaseSettings databaseSettings)
     {
-        var databaseSettings = GetDatabaseSettings(services);
         var databaseType = databaseSettings.GetDatabaseType();
 
         if (databaseType == DatabaseType.MySql)
@@ -243,17 +248,4 @@ public static class DependencyInjectionExtension
         });
     }
 
-    private static bool IsUnitTestEnvironment(IServiceCollection services)
-    {
-        using var serviceProvider = services.BuildServiceProvider();
-
-        return serviceProvider.GetRequiredService<IOptions<TestEnvironmentSettings>>().Value.InMemoryTest;
-    }
-
-    private static DatabaseSettings GetDatabaseSettings(IServiceCollection services)
-    {
-        using var serviceProvider = services.BuildServiceProvider();
-
-        return serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value;
-    }
 }

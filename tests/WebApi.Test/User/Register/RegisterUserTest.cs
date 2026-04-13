@@ -33,7 +33,21 @@ public class RegisterUserTest : MyRecipeBookClassFixture
         var responseData = await JsonDocument.ParseAsync(responseBody);
 
         responseData.RootElement.GetProperty("name").GetString().Should().NotBeNullOrWhiteSpace().And.Be(request.Name);
-        responseData.RootElement.GetProperty("tokens").GetProperty("accessToken").GetString().Should().NotBeNullOrWhiteSpace();
+        responseData.RootElement.GetProperty("tokens").GetProperty("refreshToken").GetString().Should().NotBeNullOrWhiteSpace();
+
+        var accessToken = responseData.RootElement.GetProperty("tokens").GetProperty("accessToken").GetString();
+        accessToken.Should().NotBeNullOrWhiteSpace();
+
+        var profileResponse = await DoGet(METHOD, token: accessToken!);
+
+        profileResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        await using var profileResponseBody = await profileResponse.Content.ReadAsStreamAsync();
+
+        var profileData = await JsonDocument.ParseAsync(profileResponseBody);
+
+        profileData.RootElement.GetProperty("name").GetString().Should().Be(request.Name);
+        profileData.RootElement.GetProperty("email").GetString().Should().Be(request.Email);
     }
 
     [Theory]
@@ -76,6 +90,26 @@ public class RegisterUserTest : MyRecipeBookClassFixture
         var errors = responseData.RootElement.GetProperty("errors").EnumerateArray();
 
         var expectedMessage = ResourceMessagesException.ResourceManager.GetString("EMAIL_ALREADY_REGISTERED", new CultureInfo(culture));
+
+        errors.Should().ContainSingle().And.Contain(error => error.GetString()!.Equals(expectedMessage));
+    }
+
+    [Fact]
+    public async Task Error_Invalid_Password()
+    {
+        var request = RequestRegisterUserJsonBuilder.Build(passwordLength: 4);
+
+        var response = await DoPost(method: METHOD, request: request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        await using var responseBody = await response.Content.ReadAsStreamAsync();
+
+        var responseData = await JsonDocument.ParseAsync(responseBody);
+
+        var errors = responseData.RootElement.GetProperty("errors").EnumerateArray();
+
+        var expectedMessage = ResourceMessagesException.ResourceManager.GetString("INVALID_PASSWORD", new CultureInfo("en"));
 
         errors.Should().ContainSingle().And.Contain(error => error.GetString()!.Equals(expectedMessage));
     }

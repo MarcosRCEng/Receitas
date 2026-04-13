@@ -1,5 +1,6 @@
 ﻿using CommonTestUtilities.IdEncryption;
 using CommonTestUtilities.Tokens;
+using CommonTestUtilities.Requests;
 using FluentAssertions;
 using MyRecipeBook.Exceptions;
 using System.Globalization;
@@ -62,5 +63,25 @@ public class GetRecipeByIdTest : MyRecipeBookClassFixture
         var expectedMessage = ResourceMessagesException.ResourceManager.GetString("RECIPE_NOT_FOUND", new CultureInfo(culture));
 
         errors.Should().HaveCount(1).And.Contain(c => c.GetString()!.Equals(expectedMessage));
+    }
+
+    [Fact]
+    public async Task Error_Recipe_From_Another_Active_User_Not_Found()
+    {
+        var registerResponse = await DoPost("user", RequestRegisterUserJsonBuilder.Build());
+        registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        await using var registerResponseBody = await registerResponse.Content.ReadAsStreamAsync();
+
+        var registerResponseData = await JsonDocument.ParseAsync(registerResponseBody);
+
+        var token = registerResponseData.RootElement
+            .GetProperty("tokens")
+            .GetProperty("accessToken")
+            .GetString()!;
+
+        var response = await DoGet($"{METHOD}/{_recipeId}", token);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 }

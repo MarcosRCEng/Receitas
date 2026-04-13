@@ -1,11 +1,15 @@
 ﻿using CommonTestUtilities.BlobStorage;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.IdEncryption;
+using CommonTestUtilities.Dtos;
+using CommonTestUtilities.OpenAI;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using MyRecipeBook.Domain.Dtos;
 using MyRecipeBook.Domain.Enums;
+using MyRecipeBook.Domain.Services.OpenAI;
 using MyRecipeBook.Infrastructure.DataAccess;
 
 namespace WebApi.Test;
@@ -15,6 +19,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     private MyRecipeBook.Domain.Entities.Recipe _recipe = default!;
     private MyRecipeBook.Domain.Entities.User _user = default!;
     private MyRecipeBook.Domain.Entities.RefreshToken _refreshToken = default!;
+    private readonly GeneratedRecipeDto _generatedRecipe = GeneratedRecipeDtoBuilder.Build();
     private string _password = string.Empty;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -30,6 +35,12 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
                 var blobStorage = new BlobStorageServiceBuilder().Build();
                 services.AddScoped(option => blobStorage);
+
+                var generateRecipeAIDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IGenerateRecipeAI));
+                if (generateRecipeAIDescriptor is not null)
+                    services.Remove(generateRecipeAIDescriptor);
+
+                services.AddScoped<IGenerateRecipeAI>(_ => GenerateRecipeAIBuilder.Build(_generatedRecipe));
 
                 services.AddDbContext<MyRecipeBookDbContext>(options =>
                 {
@@ -52,6 +63,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public string GetName() => _user.Name;
     public string GetRefreshToken() => _refreshToken.Value;
     public Guid GetUserIdentifier() => _user.UserIdentifier;
+    public GeneratedRecipeDto GetGeneratedRecipe() => _generatedRecipe;
 
     public string GetRecipeId() => IdEncripterBuilder.Build().Encode(_recipe.Id);
     public string GetRecipeTitle() => _recipe.Title;

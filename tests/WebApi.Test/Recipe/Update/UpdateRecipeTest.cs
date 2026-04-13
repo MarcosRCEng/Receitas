@@ -26,12 +26,26 @@ public class UpdateRecipeTest : MyRecipeBookClassFixture
     public async Task Success()
     {
         var request = RequestRecipeJsonBuilder.Build();
+        request.Title = "Updated recipe title";
+        request.Instructions[0].Step = 3;
+        request.Instructions[1].Step = 1;
+        request.Instructions[2].Step = 2;
 
         var token = JwtTokenGeneratorBuilder.Build().Generate(_userIdentifier);
 
         var response = await DoPut($"{METHOD}/{_recipeId}", request, token);
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var getResponse = await DoGet($"{METHOD}/{_recipeId}", token);
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        await using var responseBody = await getResponse.Content.ReadAsStreamAsync();
+
+        var responseData = await JsonDocument.ParseAsync(responseBody);
+
+        responseData.RootElement.GetProperty("title").GetString().Should().Be(request.Title);
+        responseData.RootElement.GetProperty("instructions").EnumerateArray().Select(instruction => instruction.GetProperty("step").GetInt32()).Should().Equal([1, 2, 3]);
     }
 
     [Theory]

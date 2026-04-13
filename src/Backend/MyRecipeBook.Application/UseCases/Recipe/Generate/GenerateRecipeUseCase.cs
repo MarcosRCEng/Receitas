@@ -30,7 +30,7 @@ public class GenerateRecipeUseCase : IGenerateRecipeUseCase
                 Step = c.Step,
                 Text = c.Text,
             }).ToList(),
-            Difficulty = Communication.Enums.Difficulty.Low
+            Difficulty = (Communication.Enums.Difficulty)response.Difficulty
         };
     }
 

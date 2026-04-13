@@ -7,4 +7,5 @@ public record GeneratedRecipeDto
     public IList<string> Ingredients { get; init; } = [];
     public IList<GeneratedInstructionDto> Instructions { get; init; } = [];
     public CookingTime CookingTime { get; init; }
+    public Difficulty Difficulty { get; init; }
 }

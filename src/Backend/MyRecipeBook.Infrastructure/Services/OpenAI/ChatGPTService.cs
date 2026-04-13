@@ -33,8 +33,9 @@ public class ChatGptService : IGenerateRecipeAI
         {
             Title = responseList[0],
             CookingTime = (CookingTime)Enum.Parse(typeof(CookingTime), responseList[1]),
-            Ingredients = responseList[2].Split(";"),
-            Instructions = responseList[3].Split("@").Select(instruction => new GeneratedInstructionDto
+            Difficulty = (Difficulty)Enum.Parse(typeof(Difficulty), responseList[2]),
+            Ingredients = responseList[3].Split(";"),
+            Instructions = responseList[4].Split("@").Select(instruction => new GeneratedInstructionDto
             {
                 Text = instruction.Trim(),
                 Step = step++

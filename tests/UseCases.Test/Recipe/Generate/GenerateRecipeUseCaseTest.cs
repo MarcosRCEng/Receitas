@@ -25,7 +25,27 @@ public class GenerateRecipeUseCaseTest
         result.Should().NotBeNull();
         result.Title.Should().Be(dto.Title);
         result.CookingTime.Should().Be((MyRecipeBook.Communication.Enums.CookingTime)dto.CookingTime);
-        result.Difficulty.Should().Be(MyRecipeBook.Communication.Enums.Difficulty.Low);
+        result.Difficulty.Should().Be((MyRecipeBook.Communication.Enums.Difficulty)dto.Difficulty);
+    }
+
+    [Theory]
+    [InlineData(MyRecipeBook.Domain.Enums.Difficulty.Low)]
+    [InlineData(MyRecipeBook.Domain.Enums.Difficulty.Medium)]
+    [InlineData(MyRecipeBook.Domain.Enums.Difficulty.High)]
+    public async Task Should_Map_Difficulty_From_Domain_To_Response(MyRecipeBook.Domain.Enums.Difficulty difficulty)
+    {
+        var dto = GeneratedRecipeDtoBuilder.Build() with
+        {
+            Difficulty = difficulty
+        };
+
+        var request = RequestGenerateRecipeJsonBuilder.Build();
+
+        var useCase = CreateUseCase(dto);
+
+        var result = await useCase.Execute(request);
+
+        result.Difficulty.Should().Be((MyRecipeBook.Communication.Enums.Difficulty)difficulty);
     }
 
     [Fact]

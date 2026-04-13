@@ -10,6 +10,7 @@ public class GeneratedRecipeDtoBuilder
         return new Faker<GeneratedRecipeDto>()
             .RuleFor(r => r.Title, faker => faker.Lorem.Word())
             .RuleFor(r => r.CookingTime, faker => faker.PickRandom<CookingTime>())
+            .RuleFor(r => r.Difficulty, faker => faker.PickRandom<Difficulty>())
             .RuleFor(r => r.Ingredients, faker => faker.Make(1, () => faker.Commerce.ProductName()))
             .RuleFor(r => r.Instructions, faker => faker.Make(1, () => new GeneratedInstructionDto
             {

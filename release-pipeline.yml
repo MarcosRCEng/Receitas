@@ -1,29 +1,32 @@
 trigger:
-- master
+  branches:
+    include:
+      - main
 
 variables:
   dockerRegistryServiceConnection: 'bd96d70c-afcd-41ce-9b18-627db2176826'
   imageRepository: 'apimyrecipebook'
-  containerRegistry: 'apimyrecipebook.azurecr.io'
   dockerfilePath: 'Dockerfile'
+  apiProjectPath: 'src/Backend/MyRecipeBook.API'
+  productionAppsettingsSecureFile: 'appsettings.Production.json'
   tag: '$(Build.BuildId)'
 
 pool:
   vmImage: 'ubuntu-latest'
 
 steps:
-
 - task: DownloadSecureFile@1
-  displayName: Download appsettings.json
-  name: appsettings
+  displayName: Download production appsettings
+  name: productionAppsettings
   inputs:
-    secureFile: 'appsettings.Production.json'
+    secureFile: '$(productionAppsettingsSecureFile)'
 
 - script: |
-    cp $(appsettings.secureFilePath) src/Backend/MyRecipeBook.API
+    cp "$(productionAppsettings.secureFilePath)" "$(apiProjectPath)/appsettings.Production.json"
+  displayName: Copy production appsettings to API project
 
 - task: Docker@2
-  displayName: Build and push an image to container registry
+  displayName: Build and push Docker image to container registry
   inputs:
     command: buildAndPush
     repository: $(imageRepository)

@@ -8,7 +8,13 @@ public class MyRecipeBookClassFixture : IClassFixture<CustomWebApplicationFactor
 {
     private readonly HttpClient _httpClient;
 
-    public MyRecipeBookClassFixture(CustomWebApplicationFactory factory) => _httpClient = factory.CreateClient();
+    public MyRecipeBookClassFixture(CustomWebApplicationFactory factory)
+    {
+        _httpClient = factory.CreateClient();
+
+        // The factory is shared across tests; reset mutable state here to keep tests independent.
+        factory.ResetDatabase();
+    }
 
     protected async Task<HttpResponseMessage> DoPost(
         string method,

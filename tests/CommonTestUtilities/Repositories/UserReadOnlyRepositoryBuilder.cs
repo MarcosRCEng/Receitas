@@ -16,6 +16,11 @@ public class UserReadOnlyRepositoryBuilder
         _repository.Setup(repository => repository.ExistActiveUserWithEmail(new Email(email))).ReturnsAsync(true);
     }
 
+    public void ExistUserWithIdentifier(Guid userIdentifier)
+    {
+        _repository.Setup(repository => repository.ExistUserWithIdentifier(userIdentifier)).ReturnsAsync(true);
+    }
+
     public void GetByEmail(User user)
     {
         _repository.Setup(repository => repository.GetByEmail(user.Email)).ReturnsAsync(user);

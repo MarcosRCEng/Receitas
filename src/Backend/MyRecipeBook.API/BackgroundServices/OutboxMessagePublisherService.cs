@@ -43,17 +43,28 @@ public class OutboxMessagePublisherService : BackgroundService
             return;
         }
 
-        _logger.LogInformation("Outbox publisher service started.");
+        _logger.LogInformation(
+            "Outbox publisher service started. QueueName: {QueueName}. DelayBetweenRunsSeconds: {DelayBetweenRunsSeconds}. MaxMessagesPerRun: {MaxMessagesPerRun}",
+            _serviceBusSettings.QueueName,
+            DelayBetweenRuns.TotalSeconds,
+            MAX_MESSAGES_PER_RUN);
 
-        while (stoppingToken.IsCancellationRequested.Equals(false))
+        try
         {
-            await PublishPendingMessages();
+            while (stoppingToken.IsCancellationRequested.Equals(false))
+            {
+                await PublishPendingMessages(stoppingToken);
 
-            await Task.Delay(DelayBetweenRuns, stoppingToken);
+                await Task.Delay(DelayBetweenRuns, stoppingToken);
+            }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("Outbox publisher service stopping.");
         }
     }
 
-    private async Task PublishPendingMessages()
+    private async Task PublishPendingMessages(CancellationToken stoppingToken)
     {
         using var scope = _services.CreateScope();
 
@@ -72,15 +83,26 @@ public class OutboxMessagePublisherService : BackgroundService
 
         foreach (var message in messages)
         {
+            stoppingToken.ThrowIfCancellationRequested();
+
             try
             {
                 if (message.Type == OutboxMessageTypes.DELETE_USER_REQUESTED)
                 {
-                    var payload = JsonSerializer.Deserialize<DeleteUserRequestedEvent>(message.Payload)
-                        ?? throw new InvalidOperationException("Invalid delete user outbox payload.");
+                    var payload = DeserializeDeleteUserRequestedEvent(message);
+
+                    _logger.LogInformation(
+                        "Publishing delete user outbox message. MessageId: {MessageId}. MessageType: {MessageType}. UserIdentifier: {UserIdentifier}. RequestId: {RequestId}. RetryCount: {RetryCount}. RequestedOnUtc: {RequestedOnUtc}",
+                        message.Id,
+                        message.Type,
+                        payload.UserIdentifier,
+                        payload.RequestId,
+                        message.RetryCount,
+                        payload.RequestedOnUtc);
 
                     await deleteUserQueue.SendMessage(
                         payload.UserIdentifier,
+                        payload.RequestId,
                         message.Id.ToString(CultureInfo.InvariantCulture));
                 }
                 else
@@ -97,19 +119,61 @@ public class OutboxMessagePublisherService : BackgroundService
                         message.Id,
                         message.Type);
                 }
+                else
+                {
+                    _logger.LogWarning(
+                        "Outbox message could not be marked as processed because it was not found. MessageId: {MessageId}. MessageType: {MessageType}",
+                        message.Id,
+                        message.Type);
+                }
             }
             catch (Exception exception)
             {
                 _logger.LogError(
                     exception,
-                    "Error processing outbox message. MessageId: {MessageId}. MessageType: {MessageType}",
+                    "Error processing outbox message. MessageId: {MessageId}. MessageType: {MessageType}. RetryCount: {RetryCount}",
                     message.Id,
-                    message.Type);
+                    message.Type,
+                    message.RetryCount);
 
-                var messageMarkedAsFailed = await outboxRepository.MarkAsFailed(message.Id, exception.Message);
+                var messageMarkedAsFailed = await outboxRepository.MarkAsFailed(message.Id, GetFailureReason(exception));
                 if (messageMarkedAsFailed)
+                {
                     await unitOfWork.Commit();
+                    _logger.LogWarning(
+                        "Outbox message marked as failed. MessageId: {MessageId}. MessageType: {MessageType}. NextRetryCount: {NextRetryCount}",
+                        message.Id,
+                        message.Type,
+                        message.RetryCount + 1);
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Outbox message could not be marked as failed because it was not found. MessageId: {MessageId}. MessageType: {MessageType}",
+                        message.Id,
+                        message.Type);
+                }
             }
         }
+    }
+
+    private static DeleteUserRequestedEvent DeserializeDeleteUserRequestedEvent(Domain.Entities.OutboxMessage message)
+    {
+        var payload = JsonSerializer.Deserialize<DeleteUserRequestedEvent>(message.Payload)
+            ?? throw new InvalidOperationException("Invalid delete user outbox payload.");
+
+        if (payload.UserIdentifier == Guid.Empty)
+            throw new InvalidOperationException("Delete user outbox payload is missing the user identifier.");
+
+        return payload;
+    }
+
+    private static string GetFailureReason(Exception exception)
+    {
+        var error = exception.GetBaseException().Message;
+
+        return string.IsNullOrWhiteSpace(error)
+            ? exception.GetType().Name
+            : error;
     }
 }

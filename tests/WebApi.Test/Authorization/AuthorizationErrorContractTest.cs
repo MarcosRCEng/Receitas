@@ -77,6 +77,17 @@ public class AuthorizationErrorContractTest : MyRecipeBookClassFixture
         response.StatusCode.Should().NotBe(HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task Regression_Builder_Generated_Token_Must_Be_Accepted_By_Test_Host()
+    {
+        // Guards the contract between JwtTokenGeneratorBuilder and the API test host configuration.
+        var token = JwtTokenGeneratorBuilder.Build().Generate(_userIdentifier);
+
+        var response = await DoGet("user", token);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
     private static async Task<JsonDocument> ReadResponse(HttpResponseMessage response)
     {
         await using var responseBody = await response.Content.ReadAsStreamAsync();

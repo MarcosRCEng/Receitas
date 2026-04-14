@@ -11,6 +11,7 @@ public class DeleteUserService : BackgroundService
     private readonly IServiceProvider _services;
     private readonly AzureServiceBusSettings _serviceBusSettings;
     private readonly ILogger<DeleteUserService> _logger;
+    private ServiceBusProcessor? _processor;
 
     public DeleteUserService(
         IServiceProvider services,
@@ -30,25 +31,65 @@ public class DeleteUserService : BackgroundService
             return;
         }
 
-        var processor = _services.GetRequiredService<DeleteUserProcessor>().GetProcessor();
+        _processor = _services.GetRequiredService<DeleteUserProcessor>().GetProcessor();
 
-        processor.ProcessMessageAsync += ProcessMessageAsync;
-        processor.ProcessErrorAsync += ExceptionReceivedHandler;
+        _processor.ProcessMessageAsync += ProcessMessageAsync;
+        _processor.ProcessErrorAsync += ExceptionReceivedHandler;
 
-        _logger.LogInformation("Delete user service started.");
+        _logger.LogInformation(
+            "Delete user service started. QueueName: {QueueName}",
+            _serviceBusSettings.QueueName);
 
-        await processor.StartProcessingAsync(stoppingToken);
+        try
+        {
+            await _processor.StartProcessingAsync(stoppingToken);
+            await Task.Delay(Timeout.Infinite, stoppingToken);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("Delete user service stopping.");
+        }
+        finally
+        {
+            if (_processor is not null)
+            {
+                _processor.ProcessMessageAsync -= ProcessMessageAsync;
+                _processor.ProcessErrorAsync -= ExceptionReceivedHandler;
+
+                if (_processor.IsProcessing)
+                    await _processor.StopProcessingAsync(CancellationToken.None);
+
+                await _processor.DisposeAsync();
+            }
+        }
     }
 
     private async Task ProcessMessageAsync(ProcessMessageEventArgs eventArgs)
     {
-        var message = eventArgs.Message.Body.ToString();
+        var message = eventArgs.Message;
+        var body = message.Body.ToString();
+
+        if (Guid.TryParse(body, out var userIdentifier).Equals(false))
+        {
+            _logger.LogError(
+                "Invalid delete user message payload. MessageId: {MessageId}. Body: {Body}. CorrelationId: {CorrelationId}. DeliveryCount: {DeliveryCount}",
+                message.MessageId,
+                body,
+                message.CorrelationId,
+                message.DeliveryCount);
+
+            throw new InvalidOperationException($"Invalid delete user message payload for message '{message.MessageId}'.");
+        }
+
+        var requestId = GetApplicationProperty(message, "RequestId") ?? message.CorrelationId;
 
         _logger.LogInformation(
-            "Processing delete user message. MessageId: {MessageId}",
-            eventArgs.Message.MessageId);
-
-        var userIdentifier = Guid.Parse(message);
+            "Processing delete user message. MessageId: {MessageId}. UserIdentifier: {UserIdentifier}. RequestId: {RequestId}. DeliveryCount: {DeliveryCount}. SequenceNumber: {SequenceNumber}",
+            message.MessageId,
+            userIdentifier,
+            requestId,
+            message.DeliveryCount,
+            message.SequenceNumber);
 
         using var scope = _services.CreateScope();
 
@@ -57,9 +98,10 @@ public class DeleteUserService : BackgroundService
         await deleteUserUseCase.Execute(userIdentifier);
 
         _logger.LogInformation(
-            "Delete user message processed successfully. MessageId: {MessageId}. UserIdentifier: {UserIdentifier}",
-            eventArgs.Message.MessageId,
-            userIdentifier);
+            "Delete user message processed successfully. MessageId: {MessageId}. UserIdentifier: {UserIdentifier}. RequestId: {RequestId}",
+            message.MessageId,
+            userIdentifier,
+            requestId);
     }
 
     private Task ExceptionReceivedHandler(ProcessErrorEventArgs eventArgs)
@@ -72,5 +114,13 @@ public class DeleteUserService : BackgroundService
             eventArgs.FullyQualifiedNamespace);
 
         return Task.CompletedTask;
+    }
+
+    private static string? GetApplicationProperty(ServiceBusReceivedMessage message, string propertyName)
+    {
+        if (message.ApplicationProperties.TryGetValue(propertyName, out var value).Equals(false))
+            return null;
+
+        return value?.ToString();
     }
 }

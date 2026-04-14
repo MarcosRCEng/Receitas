@@ -2,7 +2,10 @@
 using CommonTestUtilities.LoggedUser;
 using CommonTestUtilities.Repositories;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
 using MyRecipeBook.Application.UseCases.User.Delete.Request;
+using MyRecipeBook.Domain.Repositories;
 using MyRecipeBook.Domain.Events;
 using MyRecipeBook.Domain.ValueObjects;
 using MyRecipeBook.Exceptions;
@@ -34,6 +37,8 @@ public class RequestDeleteUserUseCaseTest
 
         var payload = JsonSerializer.Deserialize<DeleteUserRequestedEvent>(message.Payload);
         payload!.UserIdentifier.Should().Be(user.UserIdentifier);
+        payload.RequestId.Should().NotBeNull();
+        payload.RequestedOnUtc.Should().NotBeNull();
     }
 
     [Fact]
@@ -52,6 +57,31 @@ public class RequestDeleteUserUseCaseTest
                 e.GetErrorMessages().Contains(ResourceMessagesException.INVALID_SESSION));
     }
 
+    [Fact]
+    public async Task Should_Not_Create_New_Outbox_Message_When_User_Is_Already_Inactive()
+    {
+        (var user, _) = UserBuilder.Build();
+        user.Deactivate();
+
+        var outboxRepository = new OutboxRepositoryBuilder();
+        var unitOfWork = new Mock<IUnitOfWork>();
+        var loggedUser = LoggedUserBuilder.Build(user);
+        var repository = new UserUpdateOnlyRepositoryBuilder().GetById(user.Id, user).Build();
+        var useCase = new RequestDeleteUserUseCase(
+            repository,
+            outboxRepository.Build(),
+            loggedUser,
+            unitOfWork.Object,
+            new Mock<ILogger<RequestDeleteUserUseCase>>().Object);
+
+        var act = async () => await useCase.Execute();
+
+        await act.Should().NotThrowAsync();
+
+        outboxRepository.Messages.Should().BeEmpty();
+        unitOfWork.Verify(workflow => workflow.Commit(), Times.Never);
+    }
+
     private static RequestDeleteUserUseCase CreateUseCase(
         MyRecipeBook.Domain.Entities.User user,
         OutboxRepositoryBuilder outboxRepository,
@@ -62,6 +92,11 @@ public class RequestDeleteUserUseCaseTest
         var userFromRepository = repositoryUserMissing ? null : user;
         var repository = new UserUpdateOnlyRepositoryBuilder().GetById(user.Id, userFromRepository).Build();
 
-        return new RequestDeleteUserUseCase(repository, outboxRepository.Build(), loggedUser, unitOfWork);
+        return new RequestDeleteUserUseCase(
+            repository,
+            outboxRepository.Build(),
+            loggedUser,
+            unitOfWork,
+            new Mock<ILogger<RequestDeleteUserUseCase>>().Object);
     }
 }

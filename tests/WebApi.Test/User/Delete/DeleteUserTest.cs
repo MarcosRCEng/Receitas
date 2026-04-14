@@ -49,6 +49,8 @@ public class DeleteUserTest : MyRecipeBookClassFixture
 
         var payload = JsonSerializer.Deserialize<DeleteUserRequestedEvent>(message.Payload);
         payload!.UserIdentifier.Should().Be(_userIdentifier);
+        payload.RequestId.Should().NotBeNull();
+        payload.RequestedOnUtc.Should().NotBeNull();
 
         var loginResponse = await DoPost(LOGIN_METHOD, new RequestLoginJson
         {

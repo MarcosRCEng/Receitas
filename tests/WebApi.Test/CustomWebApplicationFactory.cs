@@ -3,9 +3,11 @@ using CommonTestUtilities.Entities;
 using CommonTestUtilities.IdEncryption;
 using CommonTestUtilities.Dtos;
 using CommonTestUtilities.OpenAI;
+using CommonTestUtilities.Tokens;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MyRecipeBook.Domain.Dtos;
 using MyRecipeBook.Domain.Enums;
@@ -16,6 +18,7 @@ namespace WebApi.Test;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
+    private readonly string _databaseName = $"InMemoryDbForTesting-{Guid.NewGuid():N}";
     private MyRecipeBook.Domain.Entities.Recipe _recipe = default!;
     private MyRecipeBook.Domain.Entities.User _user = default!;
     private MyRecipeBook.Domain.Entities.RefreshToken _refreshToken = default!;
@@ -25,6 +28,17 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Test")
+            .ConfigureAppConfiguration((_, configurationBuilder) =>
+            {
+                // Mirror TestJwtSettings into the API host so forged test tokens remain valid.
+                configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Jwt:SigningKey"] = TestJwtSettings.SigningKey,
+                    ["Jwt:ExpirationTimeMinutes"] = TestJwtSettings.ExpirationTimeMinutes.ToString(),
+                    ["Jwt:Issuer"] = TestJwtSettings.Issuer,
+                    ["Jwt:Audience"] = TestJwtSettings.Audience
+                });
+            })
             .ConfigureServices(services =>
             {
                 var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<MyRecipeBookDbContext>));
@@ -44,7 +58,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
                 services.AddDbContext<MyRecipeBookDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase("InMemoryDbForTesting");
+                    options.UseInMemoryDatabase(_databaseName);
                     options.UseInternalServiceProvider(provider);
                 });
 
@@ -52,9 +66,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
                 var dbContext = scope.ServiceProvider.GetRequiredService<MyRecipeBookDbContext>();
 
-                dbContext.Database.EnsureDeleted();
-
-                StartDatabase(dbContext);
+                ResetDatabase(dbContext);
             });
     }
 
@@ -71,8 +83,19 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public CookingTime GetRecipeCookingTime() => _recipe.CookingTime!.Value;
     public IList<DishType> GetDishTypes() => _recipe.DishTypes.Select(c => c.Type).ToList();
 
-    private void StartDatabase(MyRecipeBookDbContext dbContext)
+    public void ResetDatabase()
     {
+        using var scope = Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<MyRecipeBookDbContext>();
+
+        ResetDatabase(dbContext);
+    }
+
+    private void ResetDatabase(MyRecipeBookDbContext dbContext)
+    {
+        // Reset the shared in-memory database before each test to prevent cross-test contamination.
+        dbContext.Database.EnsureDeleted();
+
         (_user, _password) = UserBuilder.Build();
 
         _recipe = RecipeBuilder.Build(_user);

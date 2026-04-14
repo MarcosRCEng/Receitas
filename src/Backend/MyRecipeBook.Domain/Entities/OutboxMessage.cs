@@ -2,6 +2,8 @@ namespace MyRecipeBook.Domain.Entities;
 
 public class OutboxMessage : EntityBase
 {
+    public const int ERROR_MAX_LENGTH = 4000;
+
     private OutboxMessage()
     {
         // EF Core materializes messages through the parameterless constructor.
@@ -40,6 +42,9 @@ public class OutboxMessage : EntityBase
             throw new ArgumentException("Outbox error cannot be empty.", nameof(error));
 
         RetryCount++;
-        Error = error;
+        var normalizedError = error.Trim();
+        Error = normalizedError.Length <= ERROR_MAX_LENGTH
+            ? normalizedError
+            : normalizedError[..ERROR_MAX_LENGTH];
     }
 }

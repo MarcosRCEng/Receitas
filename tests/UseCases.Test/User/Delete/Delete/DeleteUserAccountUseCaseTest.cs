@@ -1,5 +1,6 @@
 using CommonTestUtilities.Entities;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using MyRecipeBook.Application.UseCases.User.Delete.Delete;
 using MyRecipeBook.Domain.Repositories;
@@ -22,7 +23,7 @@ public class DeleteUserAccountUseCaseTest
         var unitOfWork = new Mock<IUnitOfWork>();
 
         repositoryRead
-            .Setup(repository => repository.ExistActiveUserWithIdentifier(user.UserIdentifier))
+            .Setup(repository => repository.ExistUserWithIdentifier(user.UserIdentifier))
             .ReturnsAsync(true);
 
         var useCase = CreateUseCase(
@@ -38,6 +39,8 @@ public class DeleteUserAccountUseCaseTest
         blobStorageService.Verify(service => service.DeleteContainer(user.UserIdentifier), Times.Once);
         repositoryDelete.Verify(repository => repository.DeleteAccount(user.UserIdentifier), Times.Once);
         unitOfWork.Verify(workflow => workflow.Commit(), Times.Once);
+        repositoryRead.Verify(repository => repository.ExistUserWithIdentifier(user.UserIdentifier), Times.Once);
+        repositoryRead.Verify(repository => repository.ExistActiveUserWithIdentifier(It.IsAny<Guid>()), Times.Never);
     }
 
     [Fact]
@@ -50,7 +53,7 @@ public class DeleteUserAccountUseCaseTest
         var unitOfWork = new Mock<IUnitOfWork>();
 
         repositoryRead
-            .Setup(repository => repository.ExistActiveUserWithIdentifier(userIdentifier))
+            .Setup(repository => repository.ExistUserWithIdentifier(userIdentifier))
             .ReturnsAsync(false);
 
         var useCase = CreateUseCase(
@@ -74,6 +77,11 @@ public class DeleteUserAccountUseCaseTest
         IBlobStorageService blobStorageService,
         IUnitOfWork unitOfWork)
     {
-        return new DeleteUserAccountUseCase(repositoryRead, repositoryDelete, blobStorageService, unitOfWork);
+        return new DeleteUserAccountUseCase(
+            repositoryRead,
+            repositoryDelete,
+            blobStorageService,
+            unitOfWork,
+            new Mock<ILogger<DeleteUserAccountUseCase>>().Object);
     }
 }

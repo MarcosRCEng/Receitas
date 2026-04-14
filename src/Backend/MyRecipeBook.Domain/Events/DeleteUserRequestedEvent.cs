@@ -2,5 +2,7 @@ namespace MyRecipeBook.Domain.Events;
 
 public class DeleteUserRequestedEvent
 {
-    public required Guid UserIdentifier { get; set; }
+    public Guid UserIdentifier { get; set; }
+    public Guid? RequestId { get; set; }
+    public DateTime? RequestedOnUtc { get; set; }
 }

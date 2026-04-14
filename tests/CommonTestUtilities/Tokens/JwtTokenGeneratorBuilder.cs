@@ -5,9 +5,10 @@ namespace CommonTestUtilities.Tokens;
 
 public class JwtTokenGeneratorBuilder
 {
+    // Always read from TestJwtSettings instead of duplicating literals here.
     public static IAccessTokenGenerator Build() => new JwtTokenGenerator(
-        expirationTimeMinutes: 5,
-        signingKey: "tttttttttttttttttttttttttttttttt",
-        issuer: "MyRecipeBook",
-        audience: "MyRecipeBook");
+        expirationTimeMinutes: TestJwtSettings.ExpirationTimeMinutes,
+        signingKey: TestJwtSettings.SigningKey,
+        issuer: TestJwtSettings.Issuer,
+        audience: TestJwtSettings.Audience);
 }

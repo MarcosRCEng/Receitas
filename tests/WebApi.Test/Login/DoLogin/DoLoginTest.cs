@@ -76,9 +76,18 @@ public class DoLoginTest : MyRecipeBookClassFixture
 
         for (var attempt = 0; attempt < 11; attempt++)
         {
-            lastResponse = await DoPost(method: METHOD, request: request);
+            lastResponse = await DoPost(method: METHOD, request: request, culture: "pt-BR");
         }
 
         lastResponse.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+
+        await using var responseBody = await lastResponse.Content.ReadAsStreamAsync();
+        var responseData = await JsonDocument.ParseAsync(responseBody);
+
+        responseData.RootElement.GetProperty("errors").EnumerateArray()
+            .Select(error => error.GetString())
+            .Should()
+            .ContainSingle()
+            .Which.Should().Be(ResourceMessagesException.ResourceManager.GetString("TOO_MANY_REQUESTS", new CultureInfo("pt-BR")));
     }
 }

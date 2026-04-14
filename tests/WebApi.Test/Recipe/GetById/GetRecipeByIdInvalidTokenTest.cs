@@ -42,6 +42,6 @@ public class GetRecipeByIdInvalidTokenTest : MyRecipeBookClassFixture
 
         var response = await DoGet($"{METHOD}/{id}", token: token);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 }

@@ -183,6 +183,9 @@
   <data name="INVALID_SESSION" xml:space="preserve">
     <value>We couldn't find a valid session. Please log in to access this feature.</value>
   </data>
+  <data name="TOO_MANY_REQUESTS" xml:space="preserve">
+    <value>Too many requests. Please try again later.</value>
+  </data>
   <data name="NAME_EMPTY" xml:space="preserve">
     <value>The name cannot be empty.</value>
   </data>

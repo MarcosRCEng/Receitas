@@ -42,6 +42,6 @@ public class RegisterRecipeInvalidTokenTest : MyRecipeBookClassFixture
 
         var response = await DoPostFormData(method: METHOD, request: request, token: token);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 }

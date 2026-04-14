@@ -11,12 +11,13 @@ using MyRecipeBook.API.Converters;
 using MyRecipeBook.API.Filters;
 using MyRecipeBook.API.HealthChecks;
 using MyRecipeBook.API.Middleware;
+using MyRecipeBook.API.Responses;
 using MyRecipeBook.API.Token;
 using MyRecipeBook.Application;
-using MyRecipeBook.Communication.Responses;
 using MyRecipeBook.Domain.Extensions;
 using MyRecipeBook.Domain.Security.Tokens;
 using MyRecipeBook.Domain.Settings;
+using MyRecipeBook.Exceptions;
 using MyRecipeBook.Infrastructure;
 using MyRecipeBook.Infrastructure.DataAccess;
 using MyRecipeBook.Infrastructure.Migrations;
@@ -113,6 +114,39 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.SigningKey)),
             ClockSkew = TimeSpan.Zero
         };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = context =>
+            {
+                context.HandleResponse();
+
+                if (context.Response.HasStarted)
+                    return Task.CompletedTask;
+
+                var hasAuthorizationHeader = context.Request.Headers.Authorization.Count > 0;
+                var tokenIsExpired = context.AuthenticateFailure is SecurityTokenExpiredException;
+                var errorMessage = hasAuthorizationHeader
+                    ? ResourceMessagesException.INVALID_SESSION
+                    : ResourceMessagesException.NO_TOKEN;
+
+                return ApiErrorResponseWriter.WriteAsync(
+                    context.HttpContext,
+                    System.Net.HttpStatusCode.Unauthorized,
+                    errorMessage,
+                    tokenIsExpired);
+            },
+            OnForbidden = context =>
+            {
+                if (context.Response.HasStarted)
+                    return Task.CompletedTask;
+
+                return ApiErrorResponseWriter.WriteAsync(
+                    context.HttpContext,
+                    System.Net.HttpStatusCode.Forbidden,
+                    ResourceMessagesException.USER_WITHOUT_PERMISSION_ACCESS_RESOURCE);
+            }
+        };
     });
 
 builder.Services.AddOptions<GoogleOptions>(GoogleDefaults.AuthenticationScheme)
@@ -162,11 +196,11 @@ builder.Services.AddRateLimiter(options =>
         if (context.HttpContext.Response.HasStarted)
             return;
 
-        context.HttpContext.Response.ContentType = "application/json";
-
-        await context.HttpContext.Response.WriteAsJsonAsync(
-            new ResponseErrorJson("Too many requests. Please try again later."),
-            cancellationToken);
+        await ApiErrorResponseWriter.WriteAsync(
+            context.HttpContext,
+            System.Net.HttpStatusCode.TooManyRequests,
+            ResourceMessagesException.TOO_MANY_REQUESTS,
+            cancellationToken: cancellationToken);
     };
 });
 

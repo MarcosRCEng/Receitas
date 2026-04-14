@@ -11,6 +11,7 @@ public class TokenController : MyRecipeBookBaseController
     [HttpPost("refresh-token")]
     [EnableRateLimiting("AuthEndpoints")]
     [ProducesResponseType(typeof(ResponseTokensJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> RefreshToken(
         [FromServices] IUseRefreshTokenUseCase useCase,

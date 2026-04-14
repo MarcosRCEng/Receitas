@@ -49,6 +49,6 @@ public class UpdateRecipeTestInvalidTokenTest : MyRecipeBookClassFixture
 
         var response = await DoPut($"{METHOD}/{id}", request, token: token);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 }

@@ -42,6 +42,6 @@ public class DeleteRecipeInvalidTokenTest : MyRecipeBookClassFixture
 
         var response = await DoDelete($"{METHOD}/{id}", token: token);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 }

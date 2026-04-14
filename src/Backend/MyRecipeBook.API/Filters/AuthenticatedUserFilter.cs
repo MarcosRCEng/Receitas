@@ -25,7 +25,7 @@ public class AuthenticatedUserFilter : IAsyncAuthorizationFilter
         var exist = await _repository.ExistActiveUserWithIdentifier(userIdentifier);
         if (exist.IsFalse())
         {
-            throw new UnauthorizedException(ResourceMessagesException.USER_WITHOUT_PERMISSION_ACCESS_RESOURCE);
+            throw new ForbiddenException(ResourceMessagesException.USER_WITHOUT_PERMISSION_ACCESS_RESOURCE);
         }
     }
 

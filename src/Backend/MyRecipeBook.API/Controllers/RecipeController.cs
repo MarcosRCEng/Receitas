@@ -21,6 +21,8 @@ public class RecipeController : MyRecipeBookBaseController
     [HttpPost]
     [ProducesResponseType(typeof(ResponseRegiteredRecipeJson), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Register(
         [FromServices] IRegisterRecipeUseCase useCase,
         [FromForm] RequestRegisterRecipeFormData request)
@@ -33,6 +35,9 @@ public class RecipeController : MyRecipeBookBaseController
     [HttpPost("filter")]
     [ProducesResponseType(typeof(ResponseRecipesJson), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Filter(
         [FromServices] IFilterRecipeUseCase useCase,
         [FromBody] RequestFilterRecipeJson request)
@@ -48,6 +53,8 @@ public class RecipeController : MyRecipeBookBaseController
     [HttpGet]
     [Route("{id}")]
     [ProducesResponseType(typeof(ResponseRecipeJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(
         [FromServices] IGetRecipeByIdUseCase useCase,
@@ -61,6 +68,8 @@ public class RecipeController : MyRecipeBookBaseController
     [HttpDelete]
     [Route("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(
         [FromServices] IDeleteRecipeUseCase useCase,
@@ -74,6 +83,9 @@ public class RecipeController : MyRecipeBookBaseController
     [HttpPut]
     [Route("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(
         [FromServices] IUpdateRecipeUseCase useCase,
@@ -88,6 +100,8 @@ public class RecipeController : MyRecipeBookBaseController
     [HttpPost("generate")]
     [ProducesResponseType(typeof(ResponseGeneratedRecipeJson), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Generate(
         [FromServices] IGenerateRecipeUseCase useCase,
         [FromBody] RequestGenerateRecipeJson request)
@@ -100,8 +114,10 @@ public class RecipeController : MyRecipeBookBaseController
     [HttpPut]
     [Route("image/{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateImage(
         [FromServices] IAddUpdateImageCoverUseCase useCase,
         [FromRoute][ModelBinder(typeof(MyRecipeBookIdBinder))] long id,

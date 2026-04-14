@@ -257,6 +257,15 @@ namespace MyRecipeBook.Exceptions {
                 return ResourceManager.GetString("INVALID_SESSION", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Too many requests. Please try again later..
+        /// </summary>
+        public static string TOO_MANY_REQUESTS {
+            get {
+                return ResourceManager.GetString("TOO_MANY_REQUESTS", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to The name cannot be empty..

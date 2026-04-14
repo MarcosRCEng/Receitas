@@ -13,6 +13,8 @@ public class DashboardController : MyRecipeBookBaseController
     [HttpGet]
     [ProducesResponseType(typeof(ResponseRecipesJson), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Get([FromServices] IGetDashboardUseCase useCase)
     {
         var response = await useCase.Execute();

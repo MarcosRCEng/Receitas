@@ -1,5 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
-using MyRecipeBook.Communication.Responses;
+using MyRecipeBook.API.Responses;
 using MyRecipeBook.Exceptions;
 using MyRecipeBook.Exceptions.ExceptionsBase;
 
@@ -33,7 +32,7 @@ public class GlobalExceptionHandlingMiddleware
                 context.Request.Path,
                 (int)exception.GetStatusCode());
 
-            await WriteErrorResponse(context, exception.GetStatusCode(), exception.GetErrorMessages());
+            await ApiErrorResponseWriter.WriteAsync(context, exception);
         }
         catch (Exception exception)
         {
@@ -43,24 +42,10 @@ public class GlobalExceptionHandlingMiddleware
                 context.Request.Method,
                 context.Request.Path);
 
-            await WriteErrorResponse(
+            await ApiErrorResponseWriter.WriteAsync(
                 context,
                 System.Net.HttpStatusCode.InternalServerError,
                 [ResourceMessagesException.UNKNOWN_ERROR]);
         }
-    }
-
-    private static async Task WriteErrorResponse(
-        HttpContext context,
-        System.Net.HttpStatusCode statusCode,
-        IList<string> errors)
-    {
-        if (context.Response.HasStarted)
-            throw new InvalidOperationException("The response has already started.");
-
-        context.Response.Clear();
-        context.Response.StatusCode = (int)statusCode;
-
-        await context.Response.WriteAsJsonAsync(new ResponseErrorJson(errors));
     }
 }

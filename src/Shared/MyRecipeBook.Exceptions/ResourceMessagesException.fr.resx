@@ -183,6 +183,9 @@
   <data name="INVALID_SESSION" xml:space="preserve">
     <value>Nous n'avons pas trouvé de session valide. Veuillez vous connecter pour accéder à cette fonctionnalité.</value>
   </data>
+  <data name="TOO_MANY_REQUESTS" xml:space="preserve">
+    <value>Trop de requêtes ont été effectuées. Veuillez réessayer plus tard.</value>
+  </data>
   <data name="NAME_EMPTY" xml:space="preserve">
     <value>Le nom ne peut pas être vide.</value>
   </data>

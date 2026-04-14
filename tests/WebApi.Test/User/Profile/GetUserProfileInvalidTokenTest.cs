@@ -34,6 +34,6 @@ public class GetUserProfileInvalidTokenTest : MyRecipeBookClassFixture
 
         var response = await DoGet(METHOD, token);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 }

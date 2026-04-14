@@ -48,6 +48,19 @@ public class GlobalExceptionHandlingMiddlewareTest
         (await GetErrors(context)).Should().ContainSingle().And.Contain(ResourceMessagesException.UNKNOWN_ERROR);
     }
 
+    [Fact]
+    public async Task Should_Preserve_Token_Expired_Metadata()
+    {
+        var middleware = CreateMiddleware(_ => throw new RefreshTokenExpiredException());
+        var context = CreateHttpContext();
+
+        await middleware.InvokeAsync(context);
+
+        context.Response.StatusCode.Should().Be((int)HttpStatusCode.Unauthorized);
+        (await GetErrors(context)).Should().ContainSingle().And.Contain(ResourceMessagesException.INVALID_SESSION);
+        (await GetTokenIsExpired(context)).Should().BeTrue();
+    }
+
     private static GlobalExceptionHandlingMiddleware CreateMiddleware(RequestDelegate next) =>
         new(next, NullLogger<GlobalExceptionHandlingMiddleware>.Instance);
 
@@ -70,5 +83,14 @@ public class GlobalExceptionHandlingMiddlewareTest
             .EnumerateArray()
             .Select(error => error.GetString()!)
             .ToList();
+    }
+
+    private static async Task<bool> GetTokenIsExpired(HttpContext context)
+    {
+        context.Response.Body.Position = 0;
+
+        using var responseDocument = await JsonDocument.ParseAsync(context.Response.Body);
+
+        return responseDocument.RootElement.GetProperty("tokenIsExpired").GetBoolean();
     }
 }

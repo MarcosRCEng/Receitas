@@ -18,13 +18,19 @@ public class ExceptionFilter : IExceptionFilter
 
     private static void HandleProjectException(MyRecipeBookException myRecipeBookException, ExceptionContext context)
     {
-        context.HttpContext.Response.StatusCode = (int)myRecipeBookException.GetStatusCode();
-        context.Result = new ObjectResult(new ResponseErrorJson(myRecipeBookException.GetErrorMessages()));
+        context.Result = new ObjectResult(new ResponseErrorJson(
+            myRecipeBookException.GetErrorMessages(),
+            myRecipeBookException.TokenIsExpired))
+        {
+            StatusCode = (int)myRecipeBookException.GetStatusCode()
+        };
     }
 
     private static void ThrowUnknowException(ExceptionContext context)
     {
-        context.HttpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
-        context.Result = new ObjectResult(new ResponseErrorJson(ResourceMessagesException.UNKNOWN_ERROR));
+        context.Result = new ObjectResult(new ResponseErrorJson(ResourceMessagesException.UNKNOWN_ERROR))
+        {
+            StatusCode = StatusCodes.Status500InternalServerError
+        };
     }
 }

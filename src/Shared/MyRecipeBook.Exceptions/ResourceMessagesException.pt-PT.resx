@@ -183,6 +183,9 @@
   <data name="INVALID_SESSION" xml:space="preserve">
     <value>Não foi possível encontrar uma sessão válida. Inicie sessão para aceder a esta funcionalidade.</value>
   </data>
+  <data name="TOO_MANY_REQUESTS" xml:space="preserve">
+    <value>Foram efetuados demasiados pedidos. Tente novamente dentro de instantes.</value>
+  </data>
   <data name="NAME_EMPTY" xml:space="preserve">
     <value>O nome não pode estar vazio.</value>
   </data>

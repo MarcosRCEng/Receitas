@@ -43,6 +43,6 @@ public class ChangePasswordInvalidTokenTest : MyRecipeBookClassFixture
 
         var response = await DoPut(METHOD, request, token);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 }

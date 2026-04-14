@@ -17,6 +17,8 @@ public class UserController : MyRecipeBookBaseController
     [HttpPost]
     [EnableRateLimiting("AuthEndpoints")]
     [ProducesResponseType(typeof(ResponseRegisteredUserJson), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Register(
         [FromServices] IRegisterUserUseCase useCase,
@@ -29,6 +31,8 @@ public class UserController : MyRecipeBookBaseController
 
     [HttpGet]
     [ProducesResponseType(typeof(ResponseUserProfileJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     [Authorize]
     [AuthenticatedUser]
     public async Task<IActionResult> GetUserProfile([FromServices] IGetUserProfileUseCase useCase)
@@ -41,6 +45,9 @@ public class UserController : MyRecipeBookBaseController
     [HttpPut]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
     [Authorize]
     [AuthenticatedUser]
     public async Task<IActionResult> Update(
@@ -55,6 +62,9 @@ public class UserController : MyRecipeBookBaseController
     [HttpPut("change-password")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
     [Authorize]
     [AuthenticatedUser]
     public async Task<IActionResult> ChangePassword(
@@ -68,6 +78,8 @@ public class UserController : MyRecipeBookBaseController
 
     [HttpDelete]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     [Authorize]
     [AuthenticatedUser]
     public async Task<IActionResult> Delete([FromServices] IRequestDeleteUserUseCase useCase)

@@ -7,7 +7,9 @@ public class RefreshTokenExpiredException : MyRecipeBookException
     {
     }
 
+    public override bool TokenIsExpired => true;
+
     public override IList<string> GetErrorMessages() => [Message];
 
-    public override HttpStatusCode GetStatusCode() => HttpStatusCode.Forbidden;
+    public override HttpStatusCode GetStatusCode() => HttpStatusCode.Unauthorized;
 }

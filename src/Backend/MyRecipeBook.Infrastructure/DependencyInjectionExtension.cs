@@ -19,6 +19,7 @@ using MyRecipeBook.Domain.Services.ServiceBus;
 using MyRecipeBook.Domain.Services.Storage;
 using MyRecipeBook.Domain.Settings;
 using MyRecipeBook.Domain.ValueObjects;
+using MyRecipeBook.Infrastructure.Configuration;
 using MyRecipeBook.Infrastructure.DataAccess;
 using MyRecipeBook.Infrastructure.DataAccess.Repositories;
 using MyRecipeBook.Infrastructure.Security.Cryptography;
@@ -39,9 +40,9 @@ public static class DependencyInjectionExtension
     public static void AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         var isInMemoryTest = configuration.GetValue<bool>(nameof(TestEnvironmentSettings.InMemoryTest));
-        var databaseSettings = configuration
-            .GetSection(DatabaseSettings.SectionName)
-            .Get<DatabaseSettings>() ?? new DatabaseSettings();
+        var databaseSettings = configuration.GetSettings<DatabaseSettings>(
+            DatabaseSettings.LegacySectionName,
+            DatabaseSettings.SectionName);
 
         AddPasswordEncrpter(services);
         AddRepositories(services);
@@ -206,7 +207,7 @@ public static class DependencyInjectionExtension
             var settings = c.GetRequiredService<IOptions<BlobStorageSettings>>().Value;
 
             if (settings.IsConfigured())
-                return new AzureStorageService(new BlobServiceClient(settings.Azure));
+                return new AzureStorageService(new BlobServiceClient(settings.GetConnectionString()));
 
             return new FakeBlobStorageService();
         });
@@ -218,7 +219,7 @@ public static class DependencyInjectionExtension
         {
             var settings = c.GetRequiredService<IOptions<AzureServiceBusSettings>>().Value;
 
-            return new ServiceBusClient(settings.DeleteUserAccount, new ServiceBusClientOptions
+            return new ServiceBusClient(settings.GetConnectionString(), new ServiceBusClientOptions
             {
                 TransportType = ServiceBusTransportType.AmqpWebSockets
             });

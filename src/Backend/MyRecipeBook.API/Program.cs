@@ -19,6 +19,7 @@ using MyRecipeBook.Domain.Security.Tokens;
 using MyRecipeBook.Domain.Settings;
 using MyRecipeBook.Exceptions;
 using MyRecipeBook.Infrastructure;
+using MyRecipeBook.Infrastructure.Configuration;
 using MyRecipeBook.Infrastructure.DataAccess;
 using MyRecipeBook.Infrastructure.Migrations;
 using Serilog;
@@ -30,6 +31,11 @@ const string AUTHENTICATION_TYPE = "Bearer";
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Configuration
+    .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.local.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
+
 builder.Host.UseSerilog((context, services, configuration) =>
 {
     configuration
@@ -39,13 +45,13 @@ builder.Host.UseSerilog((context, services, configuration) =>
         .Enrich.WithProperty("Application", "MyRecipeBook.API");
 });
 
-builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
-builder.Services.Configure<AzureServiceBusSettings>(builder.Configuration.GetSection(AzureServiceBusSettings.SectionName));
-builder.Services.Configure<BlobStorageSettings>(builder.Configuration.GetSection(BlobStorageSettings.SectionName));
-builder.Services.Configure<DatabaseSettings>(builder.Configuration.GetSection(DatabaseSettings.SectionName));
-builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection(GoogleSettings.SectionName));
-builder.Services.Configure<IdCryptographySettings>(builder.Configuration.GetSection(IdCryptographySettings.SectionName));
-builder.Services.Configure<OpenAISettings>(builder.Configuration.GetSection(OpenAISettings.SectionName));
+builder.Services.ConfigureSettings<JwtSettings>(builder.Configuration, JwtSettings.LegacySectionName, JwtSettings.SectionName);
+builder.Services.ConfigureSettings<AzureServiceBusSettings>(builder.Configuration, AzureServiceBusSettings.LegacySectionName, AzureServiceBusSettings.SectionName);
+builder.Services.ConfigureSettings<BlobStorageSettings>(builder.Configuration, BlobStorageSettings.LegacySectionName, BlobStorageSettings.SectionName);
+builder.Services.ConfigureSettings<DatabaseSettings>(builder.Configuration, DatabaseSettings.LegacySectionName, DatabaseSettings.SectionName);
+builder.Services.ConfigureSettings<GoogleSettings>(builder.Configuration, GoogleSettings.LegacySectionName, GoogleSettings.SectionName);
+builder.Services.ConfigureSettings<IdCryptographySettings>(builder.Configuration, IdCryptographySettings.LegacySectionName, IdCryptographySettings.SectionName);
+builder.Services.ConfigureSettings<OpenAISettings>(builder.Configuration, OpenAISettings.LegacySectionName, OpenAISettings.SectionName);
 builder.Services.Configure<TestEnvironmentSettings>(builder.Configuration);
 
 builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new StringConverter()));

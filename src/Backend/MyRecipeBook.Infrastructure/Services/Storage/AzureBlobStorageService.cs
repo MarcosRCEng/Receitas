@@ -16,7 +16,7 @@ namespace MyRecipeBook.Infrastructure.Services.Storage
 
         public AzureBlobStorageService(IOptions<BlobStorageSettings> settings)
         {
-            _connectionString = settings.Value.Azure;
+            _connectionString = settings.Value.GetConnectionString();
         }
 
         public Task Delete(User user, string fileName) => Task.CompletedTask;

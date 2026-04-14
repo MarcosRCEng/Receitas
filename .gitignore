@@ -193,3 +193,8 @@ FakesAssemblies/
 
 /.sonarqube
 coverage.opencover.xml
+
+# Local appsettings overrides and environment-specific secrets
+src/Backend/MyRecipeBook.API/appsettings.Local.json
+src/Backend/MyRecipeBook.API/appsettings.*.local.json
+src/Backend/MyRecipeBook.API/appsettings.Production.json

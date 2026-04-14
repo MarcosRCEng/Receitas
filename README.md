@@ -49,7 +49,7 @@ Fluxo geral:
 3. `MyRecipeBook.Infrastructure` persiste dados, gera tokens e acessa OpenAI, Blob Storage e Service Bus.
 4. `MyRecipeBook.Domain` concentra contratos e regras reutilizadas.
 
-Na inicializacao, a API escolhe o banco a partir de `ConnectionStrings:DatabaseType`, garante a criacao do banco e aplica as migracoes automaticamente, exceto no ambiente de testes em memoria.
+Na inicializacao, a API escolhe o banco a partir de `Database:Provider` ou do formato legado `ConnectionStrings:DatabaseType`, garante a criacao do banco e aplica as migracoes automaticamente, exceto no ambiente de testes em memoria.
 
 ## Versionamento e comportamento da API
 
@@ -124,20 +124,23 @@ Observacoes sobre IDs:
 
 ### OpenAI
 
-- Configurada por `Settings:OpenAI:ApiKey`.
+- Configurada por `OpenAI:ApiKey`.
+- O formato legado `Settings:OpenAI:ApiKey` continua aceito.
 - Usada no endpoint `POST /api/v1/recipe/generate`.
 - Sem chave valida, o endpoint de geracao nao funciona corretamente.
 
 ### Azure Blob Storage
 
-- Configurado por `Settings:BlobStorage:Azure`.
+- Configurado por `BlobStorage:ConnectionString`.
+- O formato legado `Settings:BlobStorage:Azure` continua aceito.
 - Usado para upload, leitura por SAS URL e exclusao de imagens por usuario.
 - Se nao estiver configurado, a aplicacao usa `FakeBlobStorageService`.
 - Nesse modo, uploads nao vao para Azure e URLs retornadas sao simuladas.
 
 ### Azure Service Bus
 
-- Configurado por `Settings:ServiceBus:DeleteUserAccount` e `Settings:ServiceBus:QueueName`.
+- Configurado por `ServiceBus:ConnectionString` e `ServiceBus:QueueName`.
+- O formato legado `Settings:ServiceBus:DeleteUserAccount` continua aceito.
 - Usado no fluxo assincrono de exclusao de conta.
 - Se nao estiver configurado:
   - a publicacao para fila vira no-op (`FakeDeleteUserQueue`);
@@ -146,7 +149,8 @@ Observacoes sobre IDs:
 
 ### Google login
 
-- Configurado por `Settings:Google:ClientId` e `Settings:Google:ClientSecret`.
+- Configurado por `Google:ClientId` e `Google:ClientSecret`.
+- O formato legado `Settings:Google:*` continua aceito.
 - Usado em `GET /api/v1/login/google` e no caminho legado `GET /login/google`.
 - Quando configurado, o fluxo autentica no Google e redireciona o frontend com o token gerado pela API.
 
@@ -156,12 +160,47 @@ Arquivos presentes no projeto:
 
 - `src/Backend/MyRecipeBook.API/appsettings.json`
 - `src/Backend/MyRecipeBook.API/appsettings.Development.json`
+- `src/Backend/MyRecipeBook.API/appsettings.Local.template.json`
 - `src/Backend/MyRecipeBook.API/appsettings.Test.json`
 
-A aplicacao tambem aceita sobreposicao por variaveis de ambiente com a convencao do ASP.NET Core:
+A aplicacao tambem aceita overrides locais ignorados pelo Git:
+
+- `src/Backend/MyRecipeBook.API/appsettings.Local.json`
+- `src/Backend/MyRecipeBook.API/appsettings.Development.local.json`
+
+Precedencia pratica:
+
+1. `appsettings.json`
+2. `appsettings.{Environment}.json`
+3. `appsettings.Local.json`
+4. `appsettings.{Environment}.local.json`
+5. variaveis de ambiente
+
+Variaveis de ambiente recomendadas:
 
 ```text
 ASPNETCORE_ENVIRONMENT
+Database__Provider
+Database__PostgreSql
+Database__MySql
+Database__SqlServer
+Jwt__SigningKey
+Jwt__ExpirationTimeMinutes
+Jwt__Issuer
+Jwt__Audience
+IdCryptography__Alphabet
+OpenAI__ApiKey
+BlobStorage__ConnectionString
+ServiceBus__ConnectionString
+ServiceBus__QueueName
+Google__ClientId
+Google__ClientSecret
+InMemoryTest
+```
+
+Compatibilidade legada preservada:
+
+```text
 ConnectionStrings__DatabaseType
 ConnectionStrings__ConnectionPostgeSQL
 ConnectionStrings__ConnectionMySQLServer
@@ -177,28 +216,27 @@ Settings__ServiceBus__DeleteUserAccount
 Settings__ServiceBus__QueueName
 Settings__Google__ClientId
 Settings__Google__ClientSecret
-InMemoryTest
 ```
 
 Campos relevantes:
 
 | Chave | Uso | Obrigatoria para subir localmente? |
 | --- | --- | --- |
-| `ConnectionStrings__DatabaseType` | Seleciona banco: `0` MySQL, `1` SQL Server, `2` PostgreSQL | Sim |
-| `ConnectionStrings__ConnectionPostgeSQL` | Conexao do PostgreSQL | Sim no fluxo local recomendado |
-| `Settings__Jwt__SigningKey` | Assinatura do JWT | Sim |
-| `Settings__Jwt__Issuer` / `Audience` | Validacao do token | Sim |
-| `Settings__IdCryptographyAlphabet` | Alfabeto usado pelo `Sqids` | Sim |
-| `Settings__OpenAI__ApiKey` | Geracao de receitas por IA | Nao |
-| `Settings__BlobStorage__Azure` | Conta do Blob Storage | Nao |
-| `Settings__ServiceBus__DeleteUserAccount` | Namespace/conexao do Service Bus | Nao |
-| `Settings__ServiceBus__QueueName` | Nome da fila de exclusao | Nao |
-| `Settings__Google__ClientId` / `ClientSecret` | Login Google | Nao |
+| `Database__Provider` | Seleciona banco: `PostgreSql`, `MySql` ou `SqlServer` | Sim |
+| `Database__PostgreSql` | Conexao do PostgreSQL | Sim no fluxo local recomendado |
+| `Jwt__SigningKey` | Assinatura do JWT | Sim |
+| `Jwt__Issuer` / `Jwt__Audience` | Validacao do token | Sim |
+| `IdCryptography__Alphabet` | Alfabeto usado pelo `Sqids` | Sim |
+| `OpenAI__ApiKey` | Geracao de receitas por IA | Nao |
+| `BlobStorage__ConnectionString` | Conta do Blob Storage | Nao |
+| `ServiceBus__ConnectionString` | Namespace/conexao do Service Bus | Nao |
+| `ServiceBus__QueueName` | Nome da fila de exclusao | Nao |
+| `Google__ClientId` / `Google__ClientSecret` | Login Google | Nao |
 | `InMemoryTest` | Ativa modo de teste em memoria | Nao, somente testes |
 
 ## Execucao local
 
-O caminho mais simples e reproduzivel neste repositorio usa PostgreSQL local, porque `appsettings.Development.json` ja aponta `DatabaseType = 2`.
+O caminho mais simples e reproduzivel neste repositorio usa PostgreSQL local, porque `appsettings.Development.json` ja aponta `Database:Provider = PostgreSql`.
 
 ### Pre-requisitos
 
@@ -216,27 +254,33 @@ docker run --name myrecipebook-postgres ^
   -d postgres:16
 ```
 
-### 2. Ajuste configuracoes se necessario
+### 2. Crie seu override local
 
-Se quiser usar outro banco, outra senha ou habilitar integracoes externas, sobrescreva por variaveis de ambiente ou edite os `appsettings` locais.
+Copie o template versionado para um arquivo local ignorado pelo Git:
+
+```powershell
+Copy-Item src/Backend/MyRecipeBook.API/appsettings.Local.template.json src/Backend/MyRecipeBook.API/appsettings.Local.json
+```
+
+Se quiser usar outro banco, outra senha ou habilitar integracoes externas, edite `appsettings.Local.json` ou sobrescreva por variaveis de ambiente.
 
 Exemplo minimo em PowerShell:
 
 ```powershell
 $env:ASPNETCORE_ENVIRONMENT = "Development"
-$env:ConnectionStrings__DatabaseType = "2"
-$env:ConnectionStrings__ConnectionPostgeSQL = "Host=localhost;Username=postgres;Password=postgres;Database=meulivrodereceitas;"
+$env:Database__Provider = "PostgreSql"
+$env:Database__PostgreSql = "Host=localhost;Username=postgres;Password=postgres;Database=meulivrodereceitas;"
 ```
 
 Exemplo para habilitar integracoes opcionais:
 
 ```powershell
-$env:Settings__OpenAI__ApiKey = "<sua-chave>"
-$env:Settings__BlobStorage__Azure = "<connection-string-ou-uri-do-blob>"
-$env:Settings__ServiceBus__DeleteUserAccount = "<namespace-ou-connection-string>"
-$env:Settings__ServiceBus__QueueName = "user"
-$env:Settings__Google__ClientId = "<google-client-id>"
-$env:Settings__Google__ClientSecret = "<google-client-secret>"
+$env:OpenAI__ApiKey = "<sua-chave>"
+$env:BlobStorage__ConnectionString = "<connection-string-ou-uri-do-blob>"
+$env:ServiceBus__ConnectionString = "<namespace-ou-connection-string>"
+$env:ServiceBus__QueueName = "user"
+$env:Google__ClientId = "<google-client-id>"
+$env:Google__ClientSecret = "<google-client-secret>"
 ```
 
 ### 3. Restaure e execute
@@ -288,13 +332,13 @@ Execucao com configuracao minima via variaveis de ambiente:
 docker run --rm ^
   -p 8080:8080 ^
   -e ASPNETCORE_URLS=http://+:8080 ^
-  -e ConnectionStrings__DatabaseType=2 ^
-  -e ConnectionStrings__ConnectionPostgeSQL="Host=host.docker.internal;Username=postgres;Password=postgres;Database=meulivrodereceitas;" ^
-  -e Settings__Jwt__SigningKey="wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww" ^
-  -e Settings__Jwt__ExpirationTimeMinutes=1000 ^
-  -e Settings__Jwt__Issuer="MyRecipeBook" ^
-  -e Settings__Jwt__Audience="MyRecipeBook" ^
-  -e Settings__IdCryptographyAlphabet="achIugtW19s7vA4ldomHjULNFYbery0EpTMxkBiQ6qJ2SKXZG35Cz8RDfnPOVw" ^
+  -e Database__Provider=PostgreSql ^
+  -e Database__PostgreSql="Host=host.docker.internal;Username=postgres;Password=postgres;Database=meulivrodereceitas;" ^
+  -e Jwt__SigningKey="dev-only-signing-key-change-before-production" ^
+  -e Jwt__ExpirationTimeMinutes=1000 ^
+  -e Jwt__Issuer="MyRecipeBook" ^
+  -e Jwt__Audience="MyRecipeBook" ^
+  -e IdCryptography__Alphabet="achIugtW19s7vA4ldomHjULNFYbery0EpTMxkBiQ6qJ2SKXZG35Cz8RDfnPOVw" ^
   myrecipebook-api
 ```
 

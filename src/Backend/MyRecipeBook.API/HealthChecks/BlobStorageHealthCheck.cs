@@ -26,7 +26,7 @@ public class BlobStorageHealthCheck(
 
         try
         {
-            var blobServiceClient = new BlobServiceClient(_blobStorageSettings.Azure);
+            var blobServiceClient = new BlobServiceClient(_blobStorageSettings.GetConnectionString());
 
             await blobServiceClient.GetPropertiesAsync(cancellationToken: cancellationToken);
 

@@ -51,7 +51,7 @@ public static class DependencyInjectionExtension
             return new SqidsEncoder<long>(new()
             {
                 MinLength = 3,
-                Alphabet = settings.IdCryptographyAlphabet
+                Alphabet = settings.GetAlphabet()
             });
         });
     }

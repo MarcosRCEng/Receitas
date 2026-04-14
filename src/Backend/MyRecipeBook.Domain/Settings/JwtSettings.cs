@@ -2,7 +2,8 @@ namespace MyRecipeBook.Domain.Settings;
 
 public class JwtSettings
 {
-    public const string SectionName = "Settings:Jwt";
+    public const string SectionName = "Jwt";
+    public const string LegacySectionName = "Settings:Jwt";
 
     public string SigningKey { get; set; } = string.Empty;
     public uint ExpirationTimeMinutes { get; set; }

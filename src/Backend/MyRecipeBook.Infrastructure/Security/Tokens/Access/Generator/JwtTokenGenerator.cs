@@ -22,9 +22,14 @@ public class JwtTokenGenerator : JwtTokenHandler, IAccessTokenGenerator
 
     public string Generate(Guid userIdentifier)
     {
+        var userIdentifierValue = userIdentifier.ToString();
+
         var claims = new List<Claim>()
         {
-            new Claim(ClaimTypes.Sid, userIdentifier.ToString())
+            new Claim(ClaimTypes.NameIdentifier, userIdentifierValue),
+            new Claim(ClaimTypes.Sid, userIdentifierValue),
+            new Claim(JwtRegisteredClaimNames.Sub, userIdentifierValue),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N"))
         };
 
         var tokenDescriptor = new SecurityTokenDescriptor

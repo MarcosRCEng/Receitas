@@ -1,8 +1,6 @@
 ﻿using Microsoft.IdentityModel.Tokens;
 using MyRecipeBook.Domain.Security.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-
 namespace MyRecipeBook.Infrastructure.Security.Tokens.Access.Validator;
 
 public class JwtTokenValidator : JwtTokenHandler, IAccessTokenValidator
@@ -26,6 +24,8 @@ public class JwtTokenValidator : JwtTokenHandler, IAccessTokenValidator
             ValidateIssuer = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
+            RequireExpirationTime = true,
+            RequireSignedTokens = true,
             IssuerSigningKey = SecurityKey(_signingKey),
             ValidIssuer = _issuer,
             ValidAudience = _audience,
@@ -36,8 +36,9 @@ public class JwtTokenValidator : JwtTokenHandler, IAccessTokenValidator
 
         var principal = tokenHandler.ValidateToken(token, validationParameter, out _);
 
-        var userIdentifier = principal.Claims.First(c => c.Type == ClaimTypes.Sid).Value;
+        if (TokenClaimReader.TryGetUserIdentifier(principal, out var userIdentifier).Equals(false))
+            throw new SecurityTokenException("Token is missing a valid user identifier claim.");
 
-        return Guid.Parse(userIdentifier);
+        return userIdentifier;
     }
 }

@@ -1,11 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using MyRecipeBook.Communication.Responses;
 using MyRecipeBook.Domain.Extensions;
 using MyRecipeBook.Domain.Repositories.User;
+using MyRecipeBook.Domain.Security.Tokens;
 using MyRecipeBook.Exceptions;
 using MyRecipeBook.Exceptions.ExceptionsBase;
-using System.Security.Claims;
 
 namespace MyRecipeBook.API.Filters;
 
@@ -37,8 +36,9 @@ public class AuthenticatedUserFilter : IAsyncAuthorizationFilter
             throw new UnauthorizedException(ResourceMessagesException.NO_TOKEN);
         }
 
-        var userIdentifier = context.HttpContext.User.Claims.First(c => c.Type == ClaimTypes.Sid).Value;
+        if (TokenClaimReader.TryGetUserIdentifier(context.HttpContext.User, out var userIdentifier).Equals(false))
+            throw new UnauthorizedException(ResourceMessagesException.INVALID_SESSION);
 
-        return Guid.Parse(userIdentifier);
+        return userIdentifier;
     }
 }

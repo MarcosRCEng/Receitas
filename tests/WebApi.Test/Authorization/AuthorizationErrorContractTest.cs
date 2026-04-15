@@ -1,8 +1,12 @@
 using CommonTestUtilities.Tokens;
 using FluentAssertions;
+using Microsoft.IdentityModel.Tokens;
 using MyRecipeBook.Exceptions;
 using System.Globalization;
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
+using System.Security.Claims;
+using System.Text;
 using System.Text.Json;
 using Xunit;
 
@@ -38,6 +42,23 @@ public class AuthorizationErrorContractTest : MyRecipeBookClassFixture
     public async Task Error_Invalid_Token_Should_Return_Standard_Contract()
     {
         var response = await DoGet("dashboard", token: "tokenInvalid", culture: "pt-BR");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        var responseData = await ReadResponse(response);
+
+        responseData.RootElement.GetProperty("tokenIsExpired").GetBoolean().Should().BeFalse();
+        responseData.RootElement.GetProperty("errors").EnumerateArray()
+            .Select(error => error.GetString())
+            .Should()
+            .ContainSingle()
+            .Which.Should().Be(ResourceMessagesException.ResourceManager.GetString("INVALID_SESSION", new CultureInfo("pt-BR")));
+    }
+
+    [Fact]
+    public async Task Error_Signed_Token_Without_User_Identifier_Should_Return_Standard_Contract()
+    {
+        var response = await DoGet("dashboard", token: CreateSignedTokenWithoutUserIdentifier(), culture: "pt-BR");
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
@@ -92,5 +113,24 @@ public class AuthorizationErrorContractTest : MyRecipeBookClassFixture
     {
         await using var responseBody = await response.Content.ReadAsStreamAsync();
         return await JsonDocument.ParseAsync(responseBody);
+    }
+
+    private static string CreateSignedTokenWithoutUserIdentifier()
+    {
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity([new Claim(ClaimTypes.Name, "Test User")]),
+            Expires = DateTime.UtcNow.AddMinutes(30),
+            Issuer = TestJwtSettings.Issuer,
+            Audience = TestJwtSettings.Audience,
+            SigningCredentials = new SigningCredentials(
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(TestJwtSettings.SigningKey)),
+                SecurityAlgorithms.HmacSha256Signature)
+        };
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var securityToken = tokenHandler.CreateToken(tokenDescriptor);
+
+        return tokenHandler.WriteToken(securityToken);
     }
 }

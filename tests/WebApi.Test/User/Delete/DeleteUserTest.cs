@@ -32,9 +32,9 @@ public class DeleteUserTest : MyRecipeBookClassFixture
     [Fact]
     public async Task Success()
     {
-        var token = await GetAccessToken();
+        var tokens = await GetTokens();
 
-        var response = await DoDelete(METHOD, token);
+        var response = await DoDelete(METHOD, tokens.AccessToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
@@ -61,7 +61,24 @@ public class DeleteUserTest : MyRecipeBookClassFixture
         loginResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
-    private async Task<string> GetAccessToken()
+    [Fact]
+    public async Task Error_RefreshToken_Cannot_Be_Used_After_User_Deactivation()
+    {
+        var tokens = await GetTokens();
+
+        var deleteResponse = await DoDelete(METHOD, tokens.AccessToken);
+
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var refreshResponse = await DoPost("token/refresh-token", new RequestNewTokenJson
+        {
+            RefreshToken = tokens.RefreshToken
+        });
+
+        refreshResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    private async Task<(string AccessToken, string RefreshToken)> GetTokens()
     {
         var loginResponse = await DoPost(LOGIN_METHOD, new RequestLoginJson
         {
@@ -75,9 +92,14 @@ public class DeleteUserTest : MyRecipeBookClassFixture
 
         var responseData = await JsonDocument.ParseAsync(responseBody);
 
-        return responseData.RootElement
+        return (
+            responseData.RootElement
             .GetProperty("tokens")
             .GetProperty("accessToken")
-            .GetString()!;
+            .GetString()!,
+            responseData.RootElement
+                .GetProperty("tokens")
+                .GetProperty("refreshToken")
+                .GetString()!);
     }
 }

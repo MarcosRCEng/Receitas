@@ -19,6 +19,7 @@ using MyRecipeBook.Exceptions;
 using MyRecipeBook.Infrastructure;
 using MyRecipeBook.Infrastructure.Configuration;
 using MyRecipeBook.Infrastructure.DataAccess;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 
@@ -108,7 +109,14 @@ public static class ServiceCollectionExtensions
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
         })
         .AddJwtBearer()
-        .AddCookie()
+        .AddCookie(options =>
+        {
+            options.Cookie.HttpOnly = true;
+            options.Cookie.IsEssential = true;
+            options.Cookie.SameSite = SameSiteMode.Lax;
+            options.ExpireTimeSpan = TimeSpan.FromMinutes(5);
+            options.SlidingExpiration = false;
+        })
         .AddGoogle(googleOptions =>
         {
             googleOptions.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -125,14 +133,24 @@ public static class ServiceCollectionExtensions
                     ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
+                    RequireExpirationTime = true,
+                    RequireSignedTokens = true,
                     ValidIssuer = settings.Issuer,
                     ValidAudience = settings.Audience,
+                    NameClaimType = ClaimTypes.NameIdentifier,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.SigningKey)),
                     ClockSkew = TimeSpan.Zero
                 };
 
                 options.Events = new JwtBearerEvents
                 {
+                    OnTokenValidated = context =>
+                    {
+                        if (context.Principal is null || TokenClaimReader.TryGetUserIdentifier(context.Principal, out _).Equals(false))
+                            context.Fail(ResourceMessagesException.INVALID_SESSION);
+
+                        return Task.CompletedTask;
+                    },
                     OnChallenge = context =>
                     {
                         context.HandleResponse();
@@ -172,6 +190,7 @@ public static class ServiceCollectionExtensions
 
                 options.ClientId = settings.ClientId;
                 options.ClientSecret = settings.ClientSecret;
+                options.SaveTokens = false;
             });
 
         return services;
@@ -241,8 +260,8 @@ public static class ServiceCollectionExtensions
 
     private static string GetRateLimitPartitionKey(HttpContext httpContext)
     {
-        var userIdentifier = httpContext.User.Identity?.IsAuthenticated is true
-            ? httpContext.User.Identity.Name
+        var userIdentifier = TokenClaimReader.TryGetUserIdentifier(httpContext.User, out var parsedUserIdentifier)
+            ? parsedUserIdentifier.ToString()
             : null;
 
         return userIdentifier

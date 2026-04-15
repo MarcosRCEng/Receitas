@@ -15,7 +15,7 @@ public class TokenRepository : ITokenRepository
             .RefreshTokens
             .AsNoTracking()
             .Include(token => token.User)
-            .FirstOrDefaultAsync(token => token.Value.Equals(refreshToken));
+            .FirstOrDefaultAsync(token => token.Value.Equals(refreshToken) && token.User.Active);
     }
 
     public async Task SaveNewRefreshToken(RefreshToken refreshToken)

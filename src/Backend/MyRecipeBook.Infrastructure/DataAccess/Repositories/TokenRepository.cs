@@ -9,24 +9,26 @@ public class TokenRepository : ITokenRepository
 
     public TokenRepository(MyRecipeBookDbContext dbContext) => _dbContext = dbContext;
 
-    public async Task<RefreshToken?> Get(string refreshToken)
-    {
-        return await _dbContext
+    public async Task<RefreshToken?> Get(string refreshToken) =>
+        await _dbContext
             .RefreshTokens
             .AsNoTracking()
             .Include(token => token.User)
-            .FirstOrDefaultAsync(token => token.Value.Equals(refreshToken) && token.User.Active);
-    }
+            .FirstOrDefaultAsync(token => token.Value == refreshToken && token.User.Active);
 
     public async Task SaveNewRefreshToken(RefreshToken refreshToken)
     {
-        var activeTokens = _dbContext
+        var activeTokens = await _dbContext
             .RefreshTokens
-            .Where(token => token.UserId == refreshToken.UserId && token.RevokedAt == null);
+            .Where(token => token.UserId == refreshToken.UserId && token.RevokedAt == null)
+            .ToListAsync();
 
         var revokedAt = DateTime.UtcNow;
 
-        await activeTokens.ForEachAsync(token => token.Revoke(revokedAt));
+        foreach (var activeToken in activeTokens)
+        {
+            activeToken.Revoke(revokedAt);
+        }
 
         await _dbContext.RefreshTokens.AddAsync(refreshToken);
     }

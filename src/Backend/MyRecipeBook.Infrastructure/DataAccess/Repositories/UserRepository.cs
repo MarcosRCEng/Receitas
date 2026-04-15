@@ -13,18 +13,19 @@ public class UserRepository : IUserWriteOnlyRepository, IUserReadOnlyRepository,
 
     public async Task Add(User user) => await _dbContext.Users.AddAsync(user);
 
-    public async Task<bool> ExistActiveUserWithEmail(Email email) => await _dbContext.Users.AnyAsync(user => EF.Property<string>(user, "_email").Equals(email.Value) && user.Active);
+    public async Task<bool> ExistActiveUserWithEmail(Email email) =>
+        await ActiveUsers()
+            .AnyAsync(user => EF.Property<string>(user, "_email") == email.Value);
 
-    public async Task<bool> ExistActiveUserWithIdentifier(Guid userIdentifier) => await _dbContext.Users.AnyAsync(user => user.UserIdentifier.Equals(userIdentifier) && user.Active);
+    public async Task<bool> ExistActiveUserWithIdentifier(Guid userIdentifier) =>
+        await ActiveUsers()
+            .AnyAsync(user => user.UserIdentifier == userIdentifier);
 
-    public async Task<bool> ExistUserWithIdentifier(Guid userIdentifier) => await _dbContext.Users.AnyAsync(user => user.UserIdentifier.Equals(userIdentifier));
+    public async Task<bool> ExistUserWithIdentifier(Guid userIdentifier) =>
+        await _dbContext.Users.AnyAsync(user => user.UserIdentifier == userIdentifier);
 
-    public async Task<User?> GetById(long id)
-    {
-        return await _dbContext
-            .Users
-            .FirstOrDefaultAsync(user => user.Id == id);
-    }
+    public async Task<User?> GetById(long id) =>
+        await _dbContext.Users.FirstOrDefaultAsync(user => user.Id == id);
 
     public void Update(User user) => _dbContext.Users.Update(user);
 
@@ -37,15 +38,14 @@ public class UserRepository : IUserWriteOnlyRepository, IUserReadOnlyRepository,
         var recipes = _dbContext.Recipes.Where(recipe => recipe.UserId == user.Id);
 
         _dbContext.Recipes.RemoveRange(recipes);
-
         _dbContext.Users.Remove(user);
     }
 
-    public async Task<User?> GetByEmail(Email email)
-    {
-        return await _dbContext
-            .Users
+    public async Task<User?> GetByEmail(Email email) =>
+        await ActiveUsers()
             .AsNoTracking()
-            .FirstOrDefaultAsync(user => user.Active && EF.Property<string>(user, "_email").Equals(email.Value));
-    }
+            .FirstOrDefaultAsync(user => EF.Property<string>(user, "_email") == email.Value);
+
+    private IQueryable<User> ActiveUsers() =>
+        _dbContext.Users.Where(user => user.Active);
 }

@@ -26,13 +26,10 @@ public sealed class RecipeRepository : IRecipeWriteOnlyRepository, IRecipeReadOn
 
     public async Task<IList<Recipe>> Filter(User user, FilterRecipesDto filters)
     {
-        var query = _dbContext
-            .Recipes
-            .AsNoTracking()
-            .Include(recipe => recipe.Ingredients)
-            .Where(recipe => recipe.Active && recipe.UserId == user.Id);
+        IQueryable<Recipe> query = ReadRecipesForUser(user)
+            .Include(recipe => recipe.Ingredients);
 
-        if(filters.Difficulties.Any())
+        if (filters.Difficulties.Any())
         {
             query = query.Where(recipe => recipe.Difficulty.HasValue && filters.Difficulties.Contains(recipe.Difficulty.Value));
         }
@@ -59,37 +56,43 @@ public sealed class RecipeRepository : IRecipeWriteOnlyRepository, IRecipeReadOn
 
     async Task<Recipe?> IRecipeReadOnlyRepository.GetById(User user, long recipeId)
     {
-        return await GetFullRecipe()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(recipe => recipe.Active && recipe.Id == recipeId && recipe.UserId == user.Id);
+        return await FullRecipeForRead(user)
+            .FirstOrDefaultAsync(recipe => recipe.Id == recipeId);
     }
 
     async Task<Recipe?> IRecipeUpdateOnlyRepository.GetById(User user, long recipeId)
     {
-        return await GetFullRecipe()
-            .FirstOrDefaultAsync(recipe => recipe.Active && recipe.Id == recipeId && recipe.UserId == user.Id);
+        return await FullRecipeForUpdate(user)
+            .FirstOrDefaultAsync(recipe => recipe.Id == recipeId);
     }
 
     public void Update(Recipe recipe) => _dbContext.Recipes.Update(recipe);
 
     public async Task<IList<Recipe>> GetForDashboard(User user)
     {
-        return await _dbContext
-            .Recipes
-            .AsNoTracking()
+        return await ReadRecipesForUser(user)
             .Include(recipe => recipe.Ingredients)
-            .Where(recipe => recipe.Active && recipe.UserId == user.Id)
             .OrderByDescending(r => r.CreatedOn)
             .Take(5)
             .ToListAsync();
     }
 
-    private IQueryable<Recipe> GetFullRecipe()
-    {
-        return _dbContext
-            .Recipes
+    private IQueryable<Recipe> FullRecipeForRead(User user) =>
+        FullRecipeForUpdate(user).AsNoTracking();
+
+    private IQueryable<Recipe> FullRecipeForUpdate(User user) =>
+        ActiveRecipesForUser(user)
             .Include(recipe => recipe.Ingredients)
             .Include(recipe => recipe.Instructions)
             .Include(recipe => recipe.DishTypes);
+
+    private IQueryable<Recipe> ReadRecipesForUser(User user) =>
+        ActiveRecipesForUser(user).AsNoTracking();
+
+    private IQueryable<Recipe> ActiveRecipesForUser(User user)
+    {
+        return _dbContext
+            .Recipes
+            .Where(recipe => recipe.Active && recipe.UserId == user.Id);
     }
 }

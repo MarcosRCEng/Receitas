@@ -28,7 +28,7 @@ public class OutboxRepository : IOutboxRepository
 
     public async Task<bool> MarkAsProcessed(long id)
     {
-        var message = await _dbContext.OutboxMessages.FirstOrDefaultAsync(message => message.Id == id);
+        var message = await GetTrackedById(id);
         if (message is null)
             return false;
 
@@ -39,7 +39,7 @@ public class OutboxRepository : IOutboxRepository
 
     public async Task<bool> MarkAsFailed(long id, string error)
     {
-        var message = await _dbContext.OutboxMessages.FirstOrDefaultAsync(message => message.Id == id);
+        var message = await GetTrackedById(id);
         if (message is null)
             return false;
 
@@ -47,4 +47,7 @@ public class OutboxRepository : IOutboxRepository
 
         return true;
     }
+
+    private Task<OutboxMessage?> GetTrackedById(long id) =>
+        _dbContext.OutboxMessages.FirstOrDefaultAsync(message => message.Id == id);
 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.OpenApi.Models;
 using MyRecipeBook.API.Binders;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace MyRecipeBook.API.Filters;
@@ -9,14 +10,15 @@ public class IdsFilter : IOperationFilter
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
         var encryptedIds = context
-            .ApiDescription
-            .ParameterDescriptions
-            .Where(x => x.ModelMetadata.BinderType == typeof(MyRecipeBookIdBinder))
-            .ToDictionary(d => d.Name, d => d);
+            .ApiDescription?
+            .ParameterDescriptions?
+            .Where(UsesMyRecipeBookIdBinder)
+            .ToDictionary(d => d.Name, d => d)
+            ?? [];
 
-        foreach (var parameter in operation.Parameters)
+        foreach (var parameter in operation.Parameters ?? [])
         {
-            if (encryptedIds.TryGetValue(parameter.Name, out var apiParameter))
+            if (parameter.Schema is not null && encryptedIds.ContainsKey(parameter.Name))
             {
                 parameter.Schema.Format = string.Empty;
                 parameter.Schema.Type = "string";
@@ -25,9 +27,9 @@ public class IdsFilter : IOperationFilter
 
         foreach (var schema in context.SchemaRepository.Schemas.Values)
         {
-            foreach (var property in schema.Properties)
+            foreach (var property in schema.Properties ?? Enumerable.Empty<KeyValuePair<string, OpenApiSchema>>())
             {
-                if (encryptedIds.TryGetValue(property.Key, out var apiParameter))
+                if (property.Value is not null && encryptedIds.ContainsKey(property.Key))
                 {
                     property.Value.Format = string.Empty;
                     property.Value.Type = "string";
@@ -35,4 +37,7 @@ public class IdsFilter : IOperationFilter
             }
         }
     }
+
+    private static bool UsesMyRecipeBookIdBinder(ApiParameterDescription parameterDescription) =>
+        parameterDescription.ModelMetadata?.BinderType == typeof(MyRecipeBookIdBinder);
 }

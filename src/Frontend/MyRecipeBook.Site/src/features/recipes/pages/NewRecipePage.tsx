@@ -1,8 +1,16 @@
+import { Button, Card, Input, PageTitle } from '@shared/components';
+
 export function NewRecipePage() {
   return (
     <section>
-      <h1 className="text-3xl font-bold text-slate-950">Nova receita</h1>
-      <p className="mt-3 text-slate-700">Pagina placeholder para criacao de receitas.</p>
+      <PageTitle title="Nova receita" subtitle="Comece o cadastro com as informacoes principais." />
+      <Card className="max-w-2xl">
+        <form className="space-y-4">
+          <Input label="Titulo" name="title" placeholder="Ex.: Bolo de cenoura" />
+          <Input label="Tempo de preparo" name="cookingTime" placeholder="Ex.: 45 minutos" />
+          <Button>Salvar rascunho</Button>
+        </form>
+      </Card>
     </section>
   );
 }

@@ -1,12 +1,18 @@
 import { useParams } from 'react-router-dom';
 
+import { Card, PageTitle } from '@shared/components';
+
 export function RecipeDetailsPage() {
   const { id } = useParams();
 
   return (
     <section>
-      <h1 className="text-3xl font-bold text-slate-950">Detalhes da receita</h1>
-      <p className="mt-3 text-slate-700">Pagina placeholder para a receita {id}.</p>
+      <PageTitle title="Detalhes da receita" subtitle={`Pagina placeholder para a receita ${id}.`} />
+      <Card>
+        <p className="text-sm leading-6 text-slate-600">
+          As informacoes completas da receita ficarao organizadas nesta area.
+        </p>
+      </Card>
     </section>
   );
 }

@@ -1,8 +1,16 @@
+import { Button, Card, PageTitle } from '@shared/components';
+
 export function RecipesPage() {
   return (
     <section>
-      <h1 className="text-3xl font-bold text-slate-950">Receitas</h1>
-      <p className="mt-3 text-slate-700">Pagina placeholder para listagem de receitas.</p>
+      <PageTitle
+        actions={<Button>Nova receita</Button>}
+        subtitle="Liste, filtre e acompanhe suas receitas cadastradas."
+        title="Receitas"
+      />
+      <Card>
+        <p className="text-sm leading-6 text-slate-600">Pagina placeholder para listagem de receitas.</p>
+      </Card>
     </section>
   );
 }

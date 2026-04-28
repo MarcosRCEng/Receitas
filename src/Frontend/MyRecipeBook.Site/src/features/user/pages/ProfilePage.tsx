@@ -1,8 +1,15 @@
+import { Card, Input, PageTitle } from '@shared/components';
+
 export function ProfilePage() {
   return (
     <section>
-      <h1 className="text-3xl font-bold text-slate-950">Perfil</h1>
-      <p className="mt-3 text-slate-700">Pagina placeholder para dados do usuario.</p>
+      <PageTitle title="Perfil" subtitle="Dados basicos da sua conta." />
+      <Card className="max-w-2xl">
+        <form className="space-y-4">
+          <Input label="Nome" name="name" placeholder="Seu nome" />
+          <Input label="E-mail" name="email" placeholder="voce@email.com" type="email" />
+        </form>
+      </Card>
     </section>
   );
 }

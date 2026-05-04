@@ -8,7 +8,7 @@ export function PublicLayout() {
           <span className="text-lg font-bold text-brand-700">MyRecipeBook</span>
           <span className="hidden text-sm font-medium text-slate-500 sm:inline">Receitas em ordem</span>
         </header>
-        <div className="flex flex-1 items-center justify-center py-10">
+        <div className="flex flex-1">
           <Outlet />
         </div>
       </div>

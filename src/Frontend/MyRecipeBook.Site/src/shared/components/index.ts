@@ -1,5 +1,6 @@
 export { Button } from './Button';
-export { Card } from './Card';
+export { Badge } from '@components/ui';
+export { Card, CardContent, CardFooter, CardHeader } from './Card';
 export { ErrorMessage } from './ErrorMessage';
 export { Input } from './Input';
 export { Loading } from './Loading';

@@ -1,1 +1,1 @@
-export {};
+export { RecipeCard } from './RecipeCard';

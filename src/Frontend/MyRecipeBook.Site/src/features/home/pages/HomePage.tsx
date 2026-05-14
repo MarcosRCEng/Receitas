@@ -48,8 +48,8 @@ export function HomePage() {
             <Link className={primaryLinkClasses} to="/recipes">
               Explorar receitas
             </Link>
-            <Link className={secondaryLinkClasses} to="/register">
-              Criar minha conta
+            <Link className={secondaryLinkClasses} to="/recipes">
+              Ver receitas
             </Link>
           </div>
         </div>
@@ -120,7 +120,7 @@ export function HomePage() {
               Comece com suas receitas favoritas e evolua para uma rotina mais simples de planejamento.
             </p>
           </div>
-          <Link className={`${primaryLinkClasses} bg-white text-slate-950 hover:bg-brand-50`} to="/register">
+          <Link className={`${primaryLinkClasses} bg-white text-slate-950 hover:bg-brand-50`} to="/recipes">
             Começar agora
           </Link>
         </div>

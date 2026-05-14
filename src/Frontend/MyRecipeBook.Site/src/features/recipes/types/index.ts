@@ -1,9 +1,10 @@
 export type RecipeSummary = {
   category: string;
-  cookingTime: string;
+  description: string;
   difficulty: 'Facil' | 'Media' | 'Dificil';
   id: string;
-  servings: number;
+  imagePlaceholder: string;
+  preparationTimeMinutes: number;
   tags: string[];
   title: string;
 };

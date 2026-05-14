@@ -1,4 +1,9 @@
-import { Link, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet } from 'react-router-dom';
+
+const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
+  `rounded-md px-2.5 py-2 text-slate-700 transition hover:bg-white hover:text-brand-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${
+    isActive ? 'bg-white text-brand-800 shadow-sm' : ''
+  }`;
 
 export function PublicLayout() {
   return (
@@ -11,19 +16,16 @@ export function PublicLayout() {
           >
             MyRecipeBook
           </Link>
-          <nav className="flex flex-wrap items-center gap-2 text-sm font-semibold" aria-label="Navegação pública">
-            <Link
-              className="rounded-md px-2.5 py-2 text-slate-700 transition hover:bg-white hover:text-brand-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
-              to="/recipes"
-            >
+          <nav className="flex flex-wrap items-center gap-2 text-sm font-semibold" aria-label="Navegacao publica">
+            <NavLink className={navLinkClasses} to="/" end>
+              Início
+            </NavLink>
+            <NavLink className={navLinkClasses} to="/recipes">
               Receitas
-            </Link>
-            <Link
-              className="rounded-md px-2.5 py-2 text-slate-700 transition hover:bg-white hover:text-brand-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
-              to="/login"
-            >
+            </NavLink>
+            <NavLink className={navLinkClasses} to="/login">
               Entrar
-            </Link>
+            </NavLink>
           </nav>
         </header>
         <main className="flex flex-1">

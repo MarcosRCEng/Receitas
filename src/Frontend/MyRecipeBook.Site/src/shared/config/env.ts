@@ -56,10 +56,18 @@ function readApiVersion(): string {
   return value;
 }
 
+function buildApiVersionedBaseUrl(apiBaseUrl: string, apiVersion: string): string {
+  return `${apiBaseUrl}/api/${apiVersion}`;
+}
+
+const apiBaseUrl = readUrl('VITE_API_BASE_URL');
+const apiVersion = readApiVersion();
+
 export const env = {
   appName: readEnv('VITE_APP_NAME'),
-  apiBaseUrl: readUrl('VITE_API_BASE_URL'),
-  apiVersion: readApiVersion(),
+  apiBaseUrl,
+  apiVersion,
+  apiVersionedBaseUrl: buildApiVersionedBaseUrl(apiBaseUrl, apiVersion),
   googleLoginEnabled: readBoolean('VITE_GOOGLE_LOGIN_ENABLED'),
   googleReturnUrl: readUrl('VITE_GOOGLE_RETURN_URL'),
   aiRecipeGenerationEnabled: readBoolean('VITE_AI_RECIPE_GENERATION_ENABLED'),

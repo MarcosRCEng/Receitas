@@ -101,3 +101,27 @@ Criar uma tela admin sem contrato de Backend geraria falsa segurança e retrabal
 - Tarefas `FE-ADMIN-*` permanecem bloqueadas.
 - Primeiro deve existir decisão/implementação de role, claim ou policy no Backend.
 - Depois o Frontend poderá implementar `AdminRoute` e telas administrativas.
+
+---
+
+## DEC-004 - Camada HTTP centralizada no Frontend
+
+**Data:** 2026-05-16
+**Status:** Aceita
+
+**Contexto:**
+A Sprint 2 precisa integrar o Frontend com a API real e evitar URLs, headers e tratamento de erros espalhados pelas páginas.
+
+**Decisão:**
+Centralizar chamadas HTTP em `src/shared/http`, usando `VITE_API_BASE_URL` e `VITE_API_VERSION` para montar a base versionada `/api/v1`.
+
+A camada deve expor um cliente de alto nível para retornar diretamente o corpo da resposta, tratar `204 No Content` como `undefined`, adicionar `Authorization` quando houver provedor de token configurado e converter erros da API para `ApiRequestError`.
+
+**Motivo:**
+Essa abordagem cria um ponto único para autenticação, refresh token futuro, respostas vazias e padronização de erros, reduzindo duplicação nas features.
+
+**Consequências:**
+
+- Novos serviços de API devem usar `httpClient`.
+- A configuração da API fica fora das páginas.
+- O refresh token poderá ser conectado depois via `configureHttpAuth`, sem reescrever chamadas existentes.

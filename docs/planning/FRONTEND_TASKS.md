@@ -41,7 +41,9 @@ Transformar o Frontend de navegação/mock visual em uma aplicação integrada �
 ## FE-AUTH-001 - Criar camada HTTP centralizada
 
 **Sprint:** 2  
-**Status:** Pendente  
+**Status:** Concluído
+**Iniciado em:** 2026-05-16
+**Concluído em:** 2026-05-16
 **Prioridade:** Alta  
 **Tipo:** Frontend / Infraestrutura  
 **Dependências:** Nenhuma  

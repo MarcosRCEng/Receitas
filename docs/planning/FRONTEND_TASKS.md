@@ -217,7 +217,9 @@ Criar controle central de autenticação no Frontend.
 ## FE-AUTH-005 - Integrar LoginPage com API real
 
 **Sprint:** 2  
-**Status:** Pendente  
+**Status:** Concluído  
+**Concluído em:** 2026-05-20  
+**Branch:** feature/fe-auth-002-auth-types  
 **Prioridade:** Alta  
 **Tipo:** Frontend / Página  
 **Dependências:** FE-AUTH-004

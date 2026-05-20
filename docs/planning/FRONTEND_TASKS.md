@@ -186,7 +186,8 @@ GET  /api/v1/login/google?returnUrl={frontendCallbackUrl}
 ## FE-AUTH-004 - Implementar AuthProvider
 
 **Sprint:** 2  
-**Status:** Pendente  
+**Status:** Concluído  
+**Concluído em:** 2026-05-20  
 **Prioridade:** Alta  
 **Tipo:** Frontend / Estado global  
 **Dependências:** FE-AUTH-003

@@ -80,7 +80,8 @@ Endpoints da API usam base versionada:
 ## FE-AUTH-002 - Criar contratos TypeScript de autenticação
 
 **Sprint:** 2  
-**Status:** Pendente  
+**Status:** Concluído  
+**Concluído em:** 2026-05-20  
 **Prioridade:** Alta  
 **Tipo:** Frontend / Tipagem  
 **Dependências:** FE-AUTH-001

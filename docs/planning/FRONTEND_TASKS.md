@@ -147,7 +147,8 @@ type RegisteredUserResponse = {
 ## FE-AUTH-003 - Implementar serviço de autenticação
 
 **Sprint:** 2  
-**Status:** Pendente  
+**Status:** Concluído  
+**Concluído em:** 2026-05-20  
 **Prioridade:** Alta  
 **Tipo:** Frontend / Autenticação  
 **Dependências:** FE-AUTH-001, FE-AUTH-002

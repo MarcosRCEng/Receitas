@@ -80,7 +80,8 @@ Endpoints da API usam base versionada:
 ## FE-AUTH-002 - Criar contratos TypeScript de autenticação
 
 **Sprint:** 2  
-**Status:** Pendente  
+**Status:** Concluído  
+**Concluído em:** 2026-05-20  
 **Prioridade:** Alta  
 **Tipo:** Frontend / Tipagem  
 **Dependências:** FE-AUTH-001
@@ -185,7 +186,8 @@ GET  /api/v1/login/google?returnUrl={frontendCallbackUrl}
 ## FE-AUTH-004 - Implementar AuthProvider
 
 **Sprint:** 2  
-**Status:** Pendente  
+**Status:** Concluído  
+**Concluído em:** 2026-05-20  
 **Prioridade:** Alta  
 **Tipo:** Frontend / Estado global  
 **Dependências:** FE-AUTH-003
@@ -215,7 +217,9 @@ Criar controle central de autenticação no Frontend.
 ## FE-AUTH-005 - Integrar LoginPage com API real
 
 **Sprint:** 2  
-**Status:** Pendente  
+**Status:** Concluído  
+**Concluído em:** 2026-05-20  
+**Branch:** feature/fe-auth-002-auth-types  
 **Prioridade:** Alta  
 **Tipo:** Frontend / Página  
 **Dependências:** FE-AUTH-004
@@ -245,7 +249,9 @@ Conectar a tela de login ao fluxo real de autenticação.
 ## FE-AUTH-006 - Criar/RegisterPage e integrar cadastro
 
 **Sprint:** 2  
-**Status:** Pendente  
+**Status:** Concluído  
+**Concluído em:** 2026-05-20  
+**Branch:** feature/fe-auth-002-auth-types  
 **Prioridade:** Alta  
 **Tipo:** Frontend / Página  
 **Dependências:** FE-AUTH-004

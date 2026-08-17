@@ -1,8 +1,16 @@
-import { type ReactNode, useCallback, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { isApiRequestError } from '@shared/http';
+import { Loading } from '@shared/components';
+
 import { authService } from '../services';
-import type { LoginRequest, RegisteredUserResponse, RegisterUserRequest } from '../types';
+import type {
+  LoginRequest,
+  RegisteredUserResponse,
+  RegisterUserRequest,
+  UserProfileResponse,
+} from '../types';
 import {
   AuthContext,
   type AuthContextValue,
@@ -16,6 +24,7 @@ const DEFAULT_LOGOUT_REDIRECT_PATH = '/login';
 type AuthState = {
   user: AuthenticatedUser | null;
   isAuthenticated: boolean;
+  isInitializing: boolean;
 };
 
 type AuthProviderProps = {
@@ -26,8 +35,49 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const navigate = useNavigate();
   const [authState, setAuthState] = useState<AuthState>(() => ({
     user: null,
-    isAuthenticated: authService.getStoredAuthTokens() !== null,
+    isAuthenticated: false,
+    isInitializing: true,
   }));
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const finishInitialization = (user: AuthenticatedUser | null) => {
+      if (!isMounted) {
+        return;
+      }
+
+      setAuthState({
+        user,
+        isAuthenticated: user !== null,
+        isInitializing: false,
+      });
+    };
+
+    const restoreSession = async () => {
+      if (!authService.getStoredAuthTokens()) {
+        finishInitialization(null);
+        return;
+      }
+
+      try {
+        const user = await authService.getCurrentUser();
+        finishInitialization(toAuthenticatedUser(user));
+      } catch (error) {
+        if (isInvalidSessionError(error)) {
+          authService.logoutLocal();
+        }
+
+        finishInitialization(null);
+      }
+    };
+
+    void restoreSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const authenticate = useCallback(
     async (
@@ -40,6 +90,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setAuthState({
         user: authenticatedUser,
         isAuthenticated: true,
+        isInitializing: false,
       });
       navigate(options?.redirectTo ?? DEFAULT_AUTHENTICATED_REDIRECT_PATH, { replace: true });
 
@@ -66,6 +117,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setAuthState({
         user: null,
         isAuthenticated: false,
+        isInitializing: false,
       });
       navigate(options?.redirectTo ?? DEFAULT_LOGOUT_REDIRECT_PATH, { replace: true });
     },
@@ -76,18 +128,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
     () => ({
       user: authState.user,
       isAuthenticated: authState.isAuthenticated,
+      isInitializing: authState.isInitializing,
       login,
       register,
       logout,
     }),
-    [authState.isAuthenticated, authState.user, login, logout, register],
+    [authState.isAuthenticated, authState.isInitializing, authState.user, login, logout, register],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {authState.isInitializing ? <Loading label="Restaurando sessão..." /> : children}
+    </AuthContext.Provider>
+  );
 }
 
-function toAuthenticatedUser(response: RegisteredUserResponse): AuthenticatedUser {
+function toAuthenticatedUser(
+  response: RegisteredUserResponse | UserProfileResponse,
+): AuthenticatedUser {
   return {
     name: response.name,
   };
+}
+
+function isInvalidSessionError(error: unknown): boolean {
+  return isApiRequestError(error) && (error.statusCode === 401 || error.statusCode === 403);
 }

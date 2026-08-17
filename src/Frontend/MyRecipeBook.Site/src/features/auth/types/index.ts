@@ -19,6 +19,11 @@ export type RegisteredUserResponse = {
   tokens: TokensResponse;
 };
 
+export type UserProfileResponse = {
+  name: string;
+  email: string;
+};
+
 export type ErrorResponse = {
   errors?: string[];
   message?: string;

@@ -13,6 +13,7 @@ export type AuthRedirectOptions = {
 export type AuthContextValue = {
   user: AuthenticatedUser | null;
   isAuthenticated: boolean;
+  isInitializing: boolean;
   login: (
     request: LoginRequest,
     options?: AuthRedirectOptions,

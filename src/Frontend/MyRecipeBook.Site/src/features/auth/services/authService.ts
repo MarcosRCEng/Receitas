@@ -1,7 +1,12 @@
 import { env } from '@shared/config';
 import { configureHttpAuth, httpClient } from '@shared/http';
 
-import type { LoginRequest, RegisteredUserResponse, RegisterUserRequest } from '../types';
+import type {
+  LoginRequest,
+  RegisteredUserResponse,
+  RegisterUserRequest,
+  UserProfileResponse,
+} from '../types';
 import {
   clearStoredAuthTokens,
   getStoredAccessToken,
@@ -11,6 +16,7 @@ import {
 
 const LOGIN_ENDPOINT = '/login';
 const REGISTER_ENDPOINT = '/user';
+const CURRENT_USER_ENDPOINT = '/user';
 const GOOGLE_LOGIN_ENDPOINT = '/login/google';
 
 configureHttpAuth({
@@ -37,6 +43,16 @@ async function register(request: RegisterUserRequest): Promise<RegisteredUserRes
   return persistAuthenticatedResponse(response);
 }
 
+async function getCurrentUser(): Promise<UserProfileResponse> {
+  const response = await httpClient.get<UserProfileResponse>(CURRENT_USER_ENDPOINT);
+
+  if (!response) {
+    throw new Error('Current user response did not include user data.');
+  }
+
+  return response;
+}
+
 function buildGoogleLoginUrl(frontendCallbackUrl = env.googleReturnUrl): string {
   const url = new URL(`${env.apiVersionedBaseUrl}${GOOGLE_LOGIN_ENDPOINT}`);
   url.searchParams.set('returnUrl', frontendCallbackUrl);
@@ -61,6 +77,7 @@ function persistAuthenticatedResponse(
 
 export const authService = {
   buildGoogleLoginUrl,
+  getCurrentUser,
   getStoredAuthTokens,
   login,
   logoutLocal,

@@ -54,6 +54,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
     };
 
+    const unsubscribeFromSessionInvalidation = authService.subscribeToSessionInvalidation(() => {
+      finishInitialization(null);
+    });
+
     const restoreSession = async () => {
       if (!authService.getStoredAuthTokens()) {
         finishInitialization(null);
@@ -76,6 +80,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     return () => {
       isMounted = false;
+      unsubscribeFromSessionInvalidation();
     };
   }, []);
 

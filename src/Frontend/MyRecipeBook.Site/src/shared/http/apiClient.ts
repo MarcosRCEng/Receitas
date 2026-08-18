@@ -19,10 +19,12 @@ export type ApiErrorDetails = {
 
 export type AccessTokenProvider = () => string | null;
 export type RefreshTokenHandler = () => Promise<string | null>;
+export type SessionInvalidationHandler = () => void;
 
 export type ConfigureHttpAuthOptions = {
   getAccessToken?: AccessTokenProvider;
   refreshToken?: RefreshTokenHandler;
+  onSessionInvalid?: SessionInvalidationHandler;
 };
 
 export type HttpRequestConfig<TBody = unknown> = AxiosRequestConfig<TBody> & {
@@ -52,6 +54,7 @@ export class ApiRequestError extends Error implements ApiErrorDetails {
 
 let accessTokenProvider: AccessTokenProvider = () => null;
 let refreshTokenHandler: RefreshTokenHandler | null = null;
+let sessionInvalidationHandler: SessionInvalidationHandler | null = null;
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: env.apiVersionedBaseUrl,
@@ -63,11 +66,13 @@ export const apiClient: AxiosInstance = axios.create({
 export function configureHttpAuth(options: ConfigureHttpAuthOptions): void {
   accessTokenProvider = options.getAccessToken ?? (() => null);
   refreshTokenHandler = options.refreshToken ?? null;
+  sessionInvalidationHandler = options.onSessionInvalid ?? null;
 }
 
 export function clearHttpAuth(): void {
   accessTokenProvider = () => null;
   refreshTokenHandler = null;
+  sessionInvalidationHandler = null;
 }
 
 export function isApiRequestError(error: unknown): error is ApiRequestError {
@@ -98,6 +103,12 @@ apiClient.interceptors.response.use(
 
     if (shouldTryRefreshToken(apiError, originalRequest)) {
       originalRequest.hasRetriedAfterRefresh = true;
+      const latestAccessToken = accessTokenProvider();
+
+      if (hasUpdatedAccessToken(originalRequest, latestAccessToken)) {
+        originalRequest.headers.set('Authorization', `Bearer ${latestAccessToken}`);
+        return apiClient.request(originalRequest);
+      }
 
       try {
         const refreshedAccessToken = await refreshTokenHandler?.();
@@ -107,8 +118,12 @@ apiClient.interceptors.response.use(
           return apiClient.request(originalRequest);
         }
       } catch {
-        return Promise.reject(apiError);
+        // The final 401 below invalidates the local session.
       }
+    }
+
+    if (shouldInvalidateSession(apiError, originalRequest)) {
+      sessionInvalidationHandler?.();
     }
 
     return Promise.reject(apiError);
@@ -180,6 +195,23 @@ function shouldTryRefreshToken(
     error.tokenIsExpired &&
     refreshTokenHandler !== null
   );
+}
+
+function hasUpdatedAccessToken(
+  originalRequest: ApiClientRequestConfig,
+  latestAccessToken: string | null,
+): latestAccessToken is string {
+  return (
+    latestAccessToken !== null &&
+    originalRequest.headers.get('Authorization') !== `Bearer ${latestAccessToken}`
+  );
+}
+
+function shouldInvalidateSession(
+  error: ApiRequestError,
+  originalRequest: ApiClientRequestConfig | undefined,
+): originalRequest is ApiClientRequestConfig {
+  return originalRequest !== undefined && !originalRequest.skipAuth && error.statusCode === 401;
 }
 
 function toApiRequestError(error: AxiosError<unknown>): ApiRequestError {

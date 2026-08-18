@@ -13,4 +13,5 @@ export type {
   ConfigureHttpAuthOptions,
   HttpRequestConfig,
   RefreshTokenHandler,
+  SessionInvalidationHandler,
 } from './apiClient';

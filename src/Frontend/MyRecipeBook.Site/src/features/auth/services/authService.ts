@@ -13,14 +13,23 @@ import {
   getStoredAuthTokens,
   persistAuthTokens,
 } from './authTokenStorage';
+import type { TokensResponse } from '../types';
 
 const LOGIN_ENDPOINT = '/login';
 const REGISTER_ENDPOINT = '/user';
 const CURRENT_USER_ENDPOINT = '/user';
 const GOOGLE_LOGIN_ENDPOINT = '/login/google';
+const REFRESH_TOKEN_ENDPOINT = '/token/refresh-token';
+
+type SessionInvalidationListener = () => void;
+
+const sessionInvalidationListeners = new Set<SessionInvalidationListener>();
+let refreshInFlight: Promise<string | null> | null = null;
 
 configureHttpAuth({
   getAccessToken: getStoredAccessToken,
+  refreshToken: refreshAccessToken,
+  onSessionInvalid: invalidateSession,
 });
 
 async function login(request: LoginRequest): Promise<RegisteredUserResponse> {
@@ -64,6 +73,54 @@ function logoutLocal(): void {
   clearStoredAuthTokens();
 }
 
+function subscribeToSessionInvalidation(listener: SessionInvalidationListener): () => void {
+  sessionInvalidationListeners.add(listener);
+
+  return () => {
+    sessionInvalidationListeners.delete(listener);
+  };
+}
+
+function refreshAccessToken(): Promise<string | null> {
+  if (!refreshInFlight) {
+    refreshInFlight = requestTokenRefresh().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+
+  return refreshInFlight;
+}
+
+async function requestTokenRefresh(): Promise<string | null> {
+  const refreshToken = getStoredAuthTokens()?.refreshToken;
+
+  if (!refreshToken) {
+    return null;
+  }
+
+  try {
+    const tokens = await httpClient.post<TokensResponse, { refreshToken: string }>(
+      REFRESH_TOKEN_ENDPOINT,
+      { refreshToken },
+      { skipAuth: true },
+    );
+
+    if (!tokens) {
+      throw new Error('Refresh token response did not include tokens.');
+    }
+
+    persistAuthTokens(tokens);
+    return tokens.accessToken;
+  } catch {
+    return null;
+  }
+}
+
+function invalidateSession(): void {
+  clearStoredAuthTokens();
+  sessionInvalidationListeners.forEach((listener) => listener());
+}
+
 function persistAuthenticatedResponse(
   response: RegisteredUserResponse | undefined,
 ): RegisteredUserResponse {
@@ -82,4 +139,5 @@ export const authService = {
   login,
   logoutLocal,
   register,
+  subscribeToSessionInvalidation,
 };

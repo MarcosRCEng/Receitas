@@ -7,6 +7,10 @@ function getLocalStorage(): Storage | null {
 }
 
 export function persistAuthTokens(tokens: TokensResponse): void {
+  if (!isTokensResponse(tokens)) {
+    throw new Error('Authentication tokens must include a valid access token and refresh token.');
+  }
+
   getLocalStorage()?.setItem(AUTH_TOKENS_STORAGE_KEY, JSON.stringify(tokens));
 }
 
@@ -19,7 +23,13 @@ export function getStoredAuthTokens(): TokensResponse | null {
 
   try {
     const parsedTokens: unknown = JSON.parse(rawTokens);
-    return isTokensResponse(parsedTokens) ? parsedTokens : null;
+
+    if (!isTokensResponse(parsedTokens)) {
+      clearStoredAuthTokens();
+      return null;
+    }
+
+    return parsedTokens;
   } catch {
     clearStoredAuthTokens();
     return null;
@@ -40,7 +50,11 @@ function isTokensResponse(value: unknown): value is TokensResponse {
     value !== null &&
     'accessToken' in value &&
     'refreshToken' in value &&
-    typeof value.accessToken === 'string' &&
-    typeof value.refreshToken === 'string'
+    isNonEmptyString(value.accessToken) &&
+    isNonEmptyString(value.refreshToken)
   );
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
 }
